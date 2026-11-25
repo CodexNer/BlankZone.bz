@@ -514,7 +514,10 @@
         padding-left: 10px;
         padding-right: 10px;
       }
-      .viewer-text { padding: 16px; font-size: 13px; }
+      viewer-text {
+        padding: 14px 16px;
+        font-size: 12.5px;
+      }
       .viewer-media-stage { padding: 12px; }
       .viewer-audio-card { padding: 16px; }
     }
@@ -841,7 +844,11 @@
     }
 
     function lockVault(vaultRoot) {
-      unlockedVaults.delete(vaultRoot);
+      for (const key of Array.from(unlockedVaults.keys())) {
+        if (key === vaultRoot || key.startsWith(vaultRoot + '/')) {
+          unlockedVaults.delete(key);
+        }
+      }
       const lastSlash = vaultRoot.lastIndexOf('/');
       const parentFolder = lastSlash === -1 ? '' : vaultRoot.substring(0, lastSlash);
       navigateTo(parentFolder, true);
@@ -1484,12 +1491,16 @@
       submitBtn.textContent = 'Decrypting...';
 
       try {
-        const res = await fetch(pendingDecrypt.item.path + '?t=' + Date.now());
-        if (!res.ok) throw new Error('Could not fetch encrypted file');
+        let bytes;
+        if (pendingDecrypt.item.virtual && pendingDecrypt.item.rawBytes) {
+          bytes = pendingDecrypt.item.rawBytes;
+        } else {
+          const res = await fetch(pendingDecrypt.item.path + '?t=' + Date.now());
+          if (!res.ok) throw new Error('Could not fetch encrypted file');
+          bytes = new Uint8Array(await res.arrayBuffer());
+        }
 
         if (pendingDecrypt.type === 'vault') {
-          const buf = await res.arrayBuffer();
-          const bytes = new Uint8Array(buf);
           const vaultRoot = getVaultVirtualPath(pendingDecrypt.item);
 
           // Check for OOSV1 binary magic header ("OOSV")
@@ -1533,12 +1544,12 @@
             mountVirtualFiles(vaultRoot, pendingDecrypt.item.modified, parsed.files);
           }
         } else {
-          // Single locked link (.locked.txt) — embed directly in viewer
-          const hex = (await res.text()).replace(/\s+/g, '');
-          const bytes = new Uint8Array(hex.match(/.{1,2}/g).map(b => parseInt(b, 16)));
-          const salt = bytes.slice(0, 16);
-          const iv = bytes.slice(16, 28);
-          const ciphertext = bytes.slice(28);
+          // Single locked link (.locked.txt) — works both at root and nested inside vaults
+          const hex = new TextDecoder().decode(bytes).replace(/\s+/g, '');
+          const linkBytes = new Uint8Array(hex.match(/.{1,2}/g).map(b => parseInt(b, 16)));
+          const salt = linkBytes.slice(0, 16);
+          const iv = linkBytes.slice(16, 28);
+          const ciphertext = linkBytes.slice(28);
 
           const key = await deriveAesKey(password, salt);
           const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext);
