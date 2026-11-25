@@ -422,14 +422,15 @@
     }
     .viewer-text {
       margin: 0;
+      width: 100%;
       padding: 22px 26px;
       font-family: "Courier New", Courier, "Lucida Console", monospace;
       font-size: 13.5px;
       line-height: 1.65;
       color: #e6edf3;
       white-space: pre-wrap;
+      overflow-wrap: anywhere;
       word-break: break-word;
-      max-width: 920px;
     }
     .viewer-loading {
       padding: 24px;
@@ -510,7 +511,6 @@
       .column-header,
       .file-row {
         grid-template-columns: minmax(0, 1fr) 98px 94px;
-        gap: 8px;
         padding-left: 10px;
         padding-right: 10px;
       }
