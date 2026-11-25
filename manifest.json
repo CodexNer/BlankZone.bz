@@ -12,29 +12,36 @@
     "modified": "2026-11-25"
   },
   {
+    "name": "test.txt",
+    "path": "test.txt",
+    "type": "file",
+    "locked": false,
+    "modified": "2026-11-25"
+  },
+  {
     "name": "Characters_Data__Testing_Purpose_.locked.txt",
-    "path": "Characters_Data__Testing_Purpose_.locked.txt",
+    "path": "Test_Files/Characters_Data__Testing_Purpose_.locked.txt",
     "type": "file",
     "locked": true,
     "modified": "2026-11-25"
   },
   {
-    "name": "Larpkai.video.link.txt",
-    "path": "Larpkai.video.link.txt",
+    "name": "NullClassified.vault.txt",
+    "path": "Test_Files/NullClassified.vault.txt",
     "type": "file",
     "locked": false,
     "modified": "2026-11-25"
   },
   {
     "name": "end is never the end.txt",
-    "path": "end is never the end.txt",
+    "path": "Test_Files/end is never the end.txt",
     "type": "file",
     "locked": false,
     "modified": "2026-11-25"
   },
   {
-    "name": "test.txt",
-    "path": "Test_Files/test.txt",
+    "name": "Larpkai.video.link.txt",
+    "path": "Test_Media/Larpkai.video.link.txt",
     "type": "file",
     "locked": false,
     "modified": "2026-11-25"
