@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OOS — Local Link Encryptor</title>
+  <style>
+    :root {
+      color-scheme: dark;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      font-size: 13px;
+      color: #d0d7de;
+      background: #121417;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Header */
+    .navbar {
+      width: 100%;
+      padding: 12px 24px 11px;
+      border-bottom: 1px solid #2a2f38;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #181b20;
+    }
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      color: #e6edf3;
+      font-family: "Courier New", Courier, "Lucida Console", monospace;
+      font-size: 19px;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+    }
+    .brand-logo {
+      flex-shrink: 0;
+      filter: drop-shadow(0 0 5px rgba(217, 30, 255, 0.35));
+    }
+    .offline-badge {
+      font-family: "Courier New", Courier, monospace;
+      font-size: 11px;
+      color: #e3b341;
+      background: #272118;
+      border: 1px solid #5c431f;
+      padding: 3px 8px;
+      border-radius: 3px;
+    }
+
+    /* Main Workspace */
+    .container {
+      width: 100%;
+      max-width: 760px;
+      margin: 24px auto;
+      padding: 0 18px 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .panel {
+      border: 1px solid #2d333b;
+      border-radius: 4px;
+      background: #181b20;
+      overflow: hidden;
+    }
+    .panel-header {
+      background: #21262d;
+      padding: 9px 14px;
+      border-bottom: 1px solid #2d333b;
+      font-family: "Courier New", Courier, monospace;
+      font-weight: 700;
+      font-size: 13px;
+      color: #e6edf3;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .panel-body {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .field label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #8b949e;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .input-row {
+      display: flex;
+      gap: 8px;
+    }
+    input[type="text"],
+    input[type="url"],
+    input[type="password"],
+    textarea {
+      width: 100%;
+      padding: 8px 10px;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 3px;
+      font-size: 13px;
+      color: #e6edf3;
+      outline: none;
+    }
+    input:focus, textarea:focus {
+      border-color: #58a6ff;
+    }
+    textarea {
+      min-height: 96px;
+      resize: vertical;
+      font-family: "Courier New", Courier, monospace;
+      font-size: 12px;
+      word-break: break-all;
+      line-height: 1.45;
+    }
+
+    .suffix-hint {
+      display: inline-flex;
+      align-items: center;
+      padding: 0 10px;
+      background: #21262d;
+      border: 1px solid #30363d;
+      border-radius: 3px;
+      font-family: "Courier New", Courier, monospace;
+      font-size: 12px;
+      color: #8b949e;
+      white-space: nowrap;
+    }
+
+    /* Buttons */
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .btn {
+      background: #21262d;
+      border: 1px solid #30363d;
+      border-radius: 3px;
+      padding: 7px 13px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #c9d1d9;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn:hover {
+      background: #30363d;
+      border-color: #484f58;
+    }
+    .btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+    .btn-primary {
+      background: #1f6feb;
+      border-color: #388bfd;
+      color: #ffffff;
+    }
+    .btn-primary:hover {
+      background: #388bfd;
+      border-color: #58a6ff;
+    }
+
+    .status {
+      font-family: "Courier New", Courier, monospace;
+      font-size: 12px;
+      min-height: 16px;
+    }
+    .status.ok { color: #3fb950; }
+    .status.err { color: #f85149; }
+
+    input[type="file"] {
+      font-size: 12px;
+      color: #8b949e;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="navbar">
+    <div class="brand">
+      <svg class="brand-logo" width="32" height="32" viewBox="0 0 120 132" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="60,6 95,24 95,88 60,126 25,88 25,24" fill="#090714"/>
+        <polygon points="60,6 18,24 18,88 60,126 60,113 23,83 23,30 60,17" fill="#d91eff"/>
+        <polygon points="60,6 100,24 100,88 60,126 60,113 90,83 90,30 60,17" fill="#4324c9"/>
+        <polygon points="4,61 32,56 32,66" fill="#facc15"/>
+        <polygon points="116,61 88,56 88,66" fill="#eab308"/>
+        <polygon points="60,21 55,34 65,34" fill="#dc2626"/>
+        <polygon points="60,103 55,89 65,89" fill="#dc2626"/>
+        <path d="M60 25 C67 43 76 53 93 61 C76 69 67 79 60 98 C53 79 44 69 27 61 C44 53 53 43 60 25 Z" fill="#facc15"/>
+        <circle cx="60" cy="61" r="15" fill="#090714"/>
+        <path d="M60 52.5 A8.5 8.5 0 0 0 60 69.5 C57.5 64 57.5 58 60 52.5 Z" fill="#e62eff"/>
+        <path d="M60 52.5 A8.5 8.5 0 0 1 60 69.5 C57.5 64 57.5 58 60 52.5 Z" fill="#fde047"/>
+      </svg>
+      <span>OOS // Local Link Encryptor</span>
+    </div>
+    <span class="offline-badge">LOCAL TOOL — DO NOT UPLOAD</span>
+  </header>
+
+  <main class="container">
+    <!-- ENCRYPT PANEL -->
+    <section class="panel">
+      <div class="panel-header">
+        <span>1. ENCRYPT DESTINATION URL</span>
+        <span style="font-size:11px; color:#8b949e;">AES-256-GCM + PBKDF2 (250k)</span>
+      </div>
+      <div class="panel-body">
+        <div class="field">
+          <label for="fileNameInput">Display Name in Explorer</label>
+          <div class="input-row">
+            <input type="text" id="fileNameInput" placeholder="e.g. scp-096-log">
+            <span class="suffix-hint">.locked.txt</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="urlInput">Target URL (Google Drive or Hidden Page)</label>
+          <input type="url" id="urlInput" placeholder="https://drive.google.com/file/d/...">
+        </div>
+
+        <div class="field">
+          <label for="passInput">Clearance Passphrase</label>
+          <div class="input-row">
+            <input type="password" id="passInput" placeholder="Enter strong passphrase...">
+            <button class="btn" type="button" onclick="togglePass('passInput', this)">Show</button>
+            <button class="btn" type="button" onclick="generatePassphrase()">Generate</button>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-primary" type="button" onclick="encryptLink()">Encrypt Link</button>
+          <button class="btn" id="copyBtn" type="button" onclick="copyHex()" disabled>Copy Hex</button>
+          <button class="btn" id="downloadBtn" type="button" onclick="downloadLockedFile()" disabled>Download .locked.txt</button>
+        </div>
+
+        <div class="field">
+          <label for="hexOutput">Encrypted Hex Payload</label>
+          <textarea id="hexOutput" readonly placeholder="Encrypted hex bytes will appear here..."></textarea>
+        </div>
+
+        <div id="encryptStatus" class="status"></div>
+      </div>
+    </section>
+
+    <!-- VERIFY / TEST DECRYPT PANEL -->
+    <section class="panel">
+      <div class="panel-header">
+        <span>2. VERIFY / TEST DECRYPT</span>
+      </div>
+      <div class="panel-body">
+        <div class="field">
+          <label>Load an existing .locked.txt file or paste hex below</label>
+          <input type="file" id="verifyFileInput" accept=".txt" onchange="loadVerifyFile(this)">
+        </div>
+
+        <div class="field">
+          <textarea id="verifyHexInput" placeholder="Paste hex string to test..."></textarea>
+        </div>
+
+        <div class="field">
+          <label for="verifyPassInput">Passphrase to Test</label>
+          <div class="input-row">
+            <input type="password" id="verifyPassInput" placeholder="Enter passphrase..." onkeydown="if(event.key==='Enter') testDecrypt()">
+            <button class="btn" type="button" onclick="togglePass('verifyPassInput', this)">Show</button>
+            <button class="btn btn-primary" type="button" onclick="testDecrypt()">Test Decrypt</button>
+          </div>
+        </div>
+
+        <div id="verifyStatus" class="status"></div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const ITERATIONS = 250000;
+
+    function togglePass(inputId, btn) {
+      const el = document.getElementById(inputId);
+      const isHidden = el.type === 'password';
+      el.type = isHidden ? 'text' : 'password';
+      btn.textContent = isHidden ? 'Hide' : 'Show';
+    }
+
+    function generatePassphrase() {
+      const words = [
+        'vector', 'cipher', 'outcast', 'nebula', 'quantum', 'zenith', 'obsidian',
+        'specter', 'eclipse', 'phantom', 'monolith', 'vortex', 'kestrel', 'signal',
+        'horizon', 'archive', 'protocol', 'prism', 'cobalt', 'mirage', 'warden'
+      ];
+      const rand = new Uint32Array(4);
+      crypto.getRandomValues(rand);
+      const picked = Array.from(rand).map((n, i) => {
+        const w = words[n % words.length];
+        return i === 3 ? `${w}-${(n % 90) + 10}` : w;
+      });
+      const passEl = document.getElementById('passInput');
+      passEl.value = picked.join('-');
+      passEl.type = 'text';
+      passEl.nextElementSibling.textContent = 'Hide';
+    }
+
+    async function deriveAesKey(password, salt, usage) {
+      const enc = new TextEncoder();
+      const keyMaterial = await crypto.subtle.importKey(
+        'raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']
+      );
+      return crypto.subtle.deriveKey(
+        { name: 'PBKDF2', salt, iterations: ITERATIONS, hash: 'SHA-256' },
+        keyMaterial,
+        { name: 'AES-GCM', length: 256 },
+        false,
+        [usage]
+      );
+    }
+
+    async function encryptLink() {
+      const statusEl = document.getElementById('encryptStatus');
+      statusEl.className = 'status';
+      statusEl.textContent = '';
+
+      if (!window.crypto || !window.crypto.subtle) {
+        statusEl.className = 'status err';
+        statusEl.textContent = 'Web Crypto API unavailable. Open via localhost (e.g., VS Code Live Server).';
+        return;
+      }
+
+      const url = document.getElementById('urlInput').value.trim();
+      const password = document.getElementById('passInput').value;
+
+      if (!url || !password) {
+        statusEl.className = 'status err';
+        statusEl.textContent = 'Enter both a target URL and a passphrase.';
+        return;
+      }
+
+      try {
+        statusEl.textContent = 'Deriving key (250,000 PBKDF2 rounds)...';
+        const salt = crypto.getRandomValues(new Uint8Array(16));
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+        const key = await deriveAesKey(password, salt, 'encrypt');
+
+        const enc = new TextEncoder();
+        const ciphertext = new Uint8Array(
+          await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(url))
+        );
+
+        const combined = new Uint8Array(salt.length + iv.length + ciphertext.length);
+        combined.set(salt, 0);
+        combined.set(iv, 16);
+        combined.set(ciphertext, 28);
+
+        const hex = Array.from(combined)
+          .map(b => b.toString(16).padStart(2, '0'))
+          .join('');
+
+        document.getElementById('hexOutput').value = hex;
+        document.getElementById('copyBtn').disabled = false;
+        document.getElementById('downloadBtn').disabled = false;
+
+        statusEl.className = 'status ok';
+        statusEl.textContent = `Encrypted (${combined.length} bytes -> ${hex.length} hex chars).`;
+      } catch (err) {
+        statusEl.className = 'status err';
+        statusEl.textContent = 'Encryption failed: ' + err.message;
+      }
+    }
+
+    async function copyHex() {
+      const hex = document.getElementById('hexOutput').value;
+      if (!hex) return;
+      await navigator.clipboard.writeText(hex);
+      const statusEl = document.getElementById('encryptStatus');
+      statusEl.className = 'status ok';
+      statusEl.textContent = 'Hex copied to clipboard.';
+    }
+
+    function downloadLockedFile() {
+      const hex = document.getElementById('hexOutput').value;
+      if (!hex) return;
+
+      const rawName = document.getElementById('fileNameInput').value.trim() || 'secret-file';
+      const cleanBase = rawName.replace(/\.locked\.txt$/i, '').replace(/[^a-zA-Z0-9._-]/g, '_');
+      const finalName = `${cleanBase}.locked.txt`;
+
+      const blob = new Blob([hex + '\n'], { type: 'text/plain;charset=utf-8' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = finalName;
+      link.click();
+      URL.revokeObjectURL(link.href);
+
+      const statusEl = document.getElementById('encryptStatus');
+      statusEl.className = 'status ok';
+      statusEl.textContent = `Downloaded ${finalName} — move it into your repo folder and git push.`;
+    }
+
+    function loadVerifyFile(input) {
+      const file = input.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        document.getElementById('verifyHexInput').value = e.target.result.trim();
+      };
+      reader.readAsText(file);
+    }
+
+    async function testDecrypt() {
+      const statusEl = document.getElementById('verifyStatus');
+      statusEl.className = 'status';
+      statusEl.textContent = '';
+
+      const hex = document.getElementById('verifyHexInput').value.replace(/\s+/g, '');
+      const password = document.getElementById('verifyPassInput').value;
+
+      if (!hex || !password) {
+        statusEl.className = 'status err';
+        statusEl.textContent = 'Provide both the hex payload and passphrase to test.';
+        return;
+      }
+
+      if (hex.length <= 56 || hex.length % 2 !== 0 || !/^[0-9a-fA-F]+$/.test(hex)) {
+        statusEl.className = 'status err';
+        statusEl.textContent = 'Invalid hex format or truncated payload.';
+        return;
+      }
+
+      try {
+        const bytes = new Uint8Array(hex.match(/.{1,2}/g).map(b => parseInt(b, 16)));
+        const salt = bytes.slice(0, 16);
+        const iv = bytes.slice(16, 28);
+        const ciphertext = bytes.slice(28);
+
+        const key = await deriveAesKey(password, salt, 'decrypt');
+        const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext);
+        const url = new TextDecoder().decode(decrypted);
+
+        statusEl.className = 'status ok';
+        statusEl.textContent = `Valid! Decrypted URL: ${url}`;
+      } catch (err) {
+        statusEl.className = 'status err';
+        statusEl.textContent = 'Decryption failed: Wrong passphrase or tampered hex.';
+      }
+    }
+  </script>
+</body>
+</html>
