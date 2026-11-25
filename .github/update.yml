@@ -1,0 +1,57 @@
+name: Update Explorer Index
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - 'manifest.json'
+
+permissions:
+  contents: write
+
+jobs:
+  build-index:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Scan repository and build manifest.json
+        run: |
+          python3 -c '
+          import os, json, subprocess
+
+          entries = []
+          ignore = {".git", ".github", "index.html", "manifest.json", "README.md", "encryptor.html"}
+
+          for root, dirs, files in os.walk("."):
+              dirs[:] = [d for d in dirs if d not in ignore and not d.startswith(".")]
+              rel_dir = os.path.relpath(root, ".")
+              for d in sorted(dirs):
+                  path = d if rel_dir == "." else f"{rel_dir}/{d}"
+                  entries.append({"name": d, "path": path, "type": "dir"})
+              for f in sorted(files):
+                  if f in ignore or f.startswith("."):
+                      continue
+                  path = f if rel_dir == "." else f"{rel_dir}/{f}"
+                  last_mod = subprocess.check_output(
+                      ["git", "log", "-1", "--format=%cs", "--", path]
+                  ).decode().strip() or ""
+                  entries.append({
+                      "name": f,
+                      "path": path,
+                      "type": "file",
+                      "locked": f.endswith(".locked.txt"),
+                      "modified": last_mod
+                  })
+
+          with open("manifest.json", "w") as out:
+              json.dump(entries, out, indent=2)
+          '
+
+      - name: Commit updated manifest.json
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add manifest.json
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update file index" && git push)
