@@ -2,12 +2,14 @@
   {
     "name": "Files",
     "path": "Files",
-    "type": "dir"
+    "type": "dir",
+    "modified": "2026-11-25"
   },
   {
     "name": "Pictures",
     "path": "Pictures",
-    "type": "dir"
+    "type": "dir",
+    "modified": "2026-11-25"
   },
   {
     "name": "test.txt",
