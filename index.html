@@ -293,6 +293,9 @@
       background: #ffffff;
       min-height: 65vh;
     }
+    .viewer-frame.drive-frame {
+      background: #0d1014;
+    }
     .viewer-media-stage {
       flex: 1;
       display: flex;
@@ -555,6 +558,28 @@
       return item && item.type === 'file' && (item.locked || item.name.toLowerCase().endsWith('.locked.txt'));
     }
 
+    function isVideoLinkFile(item) {
+      if (!item || item.type !== 'file') return false;
+      const lower = item.name.toLowerCase();
+      if (lower.endsWith('.video.url') || lower.endsWith('.video.link')) return true;
+      if (lower.endsWith('.url') || lower.endsWith('.link')) {
+        const base = lower.replace(/\.(url|link)$/, '');
+        return VIDEO_EXTS.has(getExtension(base));
+      }
+      return false;
+    }
+
+    function isAudioLinkFile(item) {
+      if (!item || item.type !== 'file') return false;
+      const lower = item.name.toLowerCase();
+      if (lower.endsWith('.audio.url') || lower.endsWith('.audio.link')) return true;
+      if (lower.endsWith('.url') || lower.endsWith('.link')) {
+        const base = lower.replace(/\.(url|link)$/, '');
+        return AUDIO_EXTS.has(getExtension(base));
+      }
+      return false;
+    }
+
     function getVaultVirtualPath(vaultItem) {
       return vaultItem.path.replace(/\.vault\.txt$/i, '');
     }
@@ -606,7 +631,11 @@
           const entry = getAllCombinedEntries().find(e => e.path === event.state.file);
           if (entry) {
             currentPath = event.state.path;
-            openFileViewer(entry, false);
+            if (event.state.unlockedUrl) {
+              openLinkInViewer(entry, event.state.unlockedUrl, false);
+            } else {
+              openFileViewer(entry, false);
+            }
             return;
           }
         }
@@ -630,6 +659,17 @@
           history.pushState({ path: parentFolder, file: matchedFile.path }, '', buildHashUrl(matchedFile.path));
         }
         openFileViewer(matchedFile, false);
+        return;
+      }
+
+      const matchedLockedFile = repoEntries.find(e => e.path === hashPath && isLockedLinkFile(e));
+      if (matchedLockedFile) {
+        const lastSlash = matchedLockedFile.path.lastIndexOf('/');
+        const parentFolder = lastSlash === -1 ? '' : matchedLockedFile.path.substring(0, lastSlash);
+        currentPath = parentFolder;
+        if (seedHistory) seedHistoryForFolder(parentFolder);
+        navigateTo(parentFolder, false);
+        openDecryptBox('file', matchedLockedFile);
         return;
       }
 
@@ -745,6 +785,9 @@
       if (item.type === 'dir') return item.name;
       if (isVaultFile(item)) return item.name.replace(/\.vault\.txt$/i, '');
       if (isLockedLinkFile(item)) return item.name.replace(/\.locked\.txt$/i, '');
+      if (isVideoLinkFile(item) || isAudioLinkFile(item)) {
+        return item.name.replace(/\.[a-z0-9]+\.(url|link)$/i, '');
+      }
       const lastDot = item.name.lastIndexOf('.');
       return lastDot > 0 ? item.name.substring(0, lastDot) : item.name;
     }
@@ -763,6 +806,8 @@
       }
       if (item.type === 'dir') return 'Folder';
       if (isLockedLinkFile(item)) return 'Encrypted';
+      if (isVideoLinkFile(item)) return 'VIDEO';
+      if (isAudioLinkFile(item)) return 'AUDIO';
       const ext = getExtension(item.name);
       return ext ? ext.toUpperCase() : 'File';
     }
@@ -849,10 +894,10 @@
         } else if (IMAGE_EXTS.has(ext)) {
           icon = ICONS.image;
           row.title = `View image ${cleanName}`;
-        } else if (VIDEO_EXTS.has(ext)) {
+        } else if (VIDEO_EXTS.has(ext) || isVideoLinkFile(item)) {
           icon = ICONS.video;
           row.title = `Play video ${cleanName}`;
-        } else if (AUDIO_EXTS.has(ext)) {
+        } else if (AUDIO_EXTS.has(ext) || isAudioLinkFile(item)) {
           icon = ICONS.audio;
           row.title = `Play audio ${cleanName}`;
         } else {
@@ -914,6 +959,116 @@
       });
     }
 
+    function extractTargetUrl(rawText) {
+      const trimmed = (rawText || '').trim();
+      const iniMatch = trimmed.match(/^URL=(.+)$/im);
+      return iniMatch ? iniMatch[1].trim() : trimmed;
+    }
+
+    function toEmbeddableUrl(rawUrl) {
+      try {
+        const parsed = new URL(rawUrl);
+        const host = parsed.hostname.toLowerCase();
+
+        // Google Drive files & folders
+        if (host === 'drive.google.com') {
+          const fileMatch = parsed.pathname.match(/\/file\/(?:u\/\d+\/)?d\/([a-zA-Z0-9_-]+)/);
+          if (fileMatch) {
+            return {
+              embedUrl: `https://drive.google.com/file/d/${fileMatch[1]}/preview`,
+              isDrive: true
+            };
+          }
+
+          const folderMatch = parsed.pathname.match(/\/drive\/(?:u\/\d+\/)?folders\/([a-zA-Z0-9_-]+)/);
+          if (folderMatch) {
+            return {
+              embedUrl: `https://drive.google.com/embeddedfolderview?id=${folderMatch[1]}#list`,
+              isDrive: true
+            };
+          }
+
+          const queryId = parsed.searchParams.get('id');
+          if (queryId && (parsed.pathname === '/open' || parsed.pathname === '/uc')) {
+            return {
+              embedUrl: `https://drive.google.com/file/d/${queryId}/preview`,
+              isDrive: true
+            };
+          }
+        }
+
+        // Google Docs, Sheets, Slides & Forms
+        if (host === 'docs.google.com') {
+          const docsMatch = parsed.pathname.match(/\/(document|spreadsheets|presentation)\/d\/([a-zA-Z0-9_-]+)/);
+          if (docsMatch) {
+            return {
+              embedUrl: `https://docs.google.com/${docsMatch[1]}/d/${docsMatch[2]}/preview`,
+              isDrive: true
+            };
+          }
+
+          const formPublicMatch = parsed.pathname.match(/\/forms\/d\/e\/([a-zA-Z0-9_-]+)/);
+          if (formPublicMatch) {
+            return {
+              embedUrl: `https://docs.google.com/forms/d/e/${formPublicMatch[1]}/viewform?embedded=true`,
+              isDrive: true
+            };
+          }
+
+          const formMatch = parsed.pathname.match(/\/forms\/d\/([a-zA-Z0-9_-]+)/);
+          if (formMatch) {
+            return {
+              embedUrl: `https://docs.google.com/forms/d/${formMatch[1]}/viewform?embedded=true`,
+              isDrive: true
+            };
+          }
+        }
+      } catch (_) {
+        // Non-standard URL; fall through as-is
+      }
+
+      return { embedUrl: rawUrl, isDrive: false };
+    }
+
+    function openLinkInViewer(item, rawUrl, pushHistory = true) {
+      if (pushHistory) {
+        history.pushState(
+          { path: currentPath, file: item.path, unlockedUrl: rawUrl },
+          '',
+          buildHashUrl(item.path)
+        );
+      }
+
+      activeFile = item;
+      cleanupViewerMedia();
+      closeDecryptBox();
+      renderBreadcrumb();
+
+      document.getElementById('directoryView').style.display = 'none';
+      const viewerView = document.getElementById('viewerView');
+      const viewerBody = document.getElementById('viewerBody');
+      viewerView.style.display = 'flex';
+
+      const cleanName = getCleanName(item);
+      const fileType = getFileType(item);
+      const modified = getModifiedDate(item);
+      const { embedUrl, isDrive } = toEmbeddableUrl(rawUrl);
+
+      document.getElementById('viewerMeta').textContent =
+        `${fileType}${isDrive ? ' • Drive Preview' : ''} • Modified ${modified}`;
+      document.getElementById('viewerRawLink').href = rawUrl;
+
+      const iframe = document.createElement('iframe');
+      iframe.className = isDrive ? 'viewer-frame drive-frame' : 'viewer-frame';
+      iframe.src = embedUrl;
+      iframe.title = cleanName;
+      iframe.setAttribute('allow', 'autoplay; fullscreen');
+      iframe.setAttribute('allowfullscreen', '');
+
+      viewerBody.innerHTML = '';
+      viewerBody.appendChild(iframe);
+    }
+
     function dataUrlToBlobUrl(dataUrl) {
       const parts = dataUrl.split(',');
       const mimeMatch = parts[0].match(/:(.*?);/);
@@ -951,12 +1106,13 @@
     async function openFileViewer(item, pushHistory = true) {
       const ext = getExtension(item.name);
 
-      // Handle external link entries inside unlocked vaults
+      // Handle virtual .url / .link entries inside unlocked vaults by embedding inline
       if (item.virtual && LINK_EXTS.has(ext)) {
-        const targetUrl = item.rawBytes
-          ? new TextDecoder().decode(item.rawBytes).trim()
-          : (item.content || '').trim();
-        window.open(targetUrl, '_blank', 'noopener');
+        const rawText = item.rawBytes
+          ? new TextDecoder().decode(item.rawBytes)
+          : (item.content || '');
+        const targetUrl = extractTargetUrl(rawText);
+        openLinkInViewer(item, targetUrl, pushHistory);
         return;
       }
 
@@ -981,6 +1137,20 @@
       document.getElementById('viewerMeta').textContent = metaLabel;
 
       const rawLinkEl = document.getElementById('viewerRawLink');
+
+      // Public .url / .link file stored directly in the repository
+      if (!item.virtual && LINK_EXTS.has(ext)) {
+        viewerBody.innerHTML = `<div class="viewer-loading">Resolving linked resource...</div>`;
+        try {
+          const res = await fetch(item.path + '?t=' + Date.now());
+          if (!res.ok) throw new Error('Unable to load link file');
+          const targetUrl = extractTargetUrl(await res.text());
+          openLinkInViewer(item, targetUrl, false);
+        } catch (err) {
+          viewerBody.innerHTML = `<div class="viewer-loading" style="color:#f85149;">Failed to load ${item.name}.</div>`;
+        }
+        return;
+      }
 
       // Resolve source URL (public path, OOSV1 binary slice, or legacy JSON content)
       let mediaSrc = item.path;
@@ -1186,7 +1356,7 @@
             mountVirtualFiles(vaultRoot, pendingDecrypt.item.modified, parsed.files);
           }
         } else {
-          // Single locked link (.locked.txt)
+          // Single locked link (.locked.txt) — embed directly in viewer
           const hex = (await res.text()).replace(/\s+/g, '');
           const bytes = new Uint8Array(hex.match(/.{1,2}/g).map(b => parseInt(b, 16)));
           const salt = bytes.slice(0, 16);
@@ -1195,7 +1365,9 @@
 
           const key = await deriveAesKey(password, salt);
           const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext);
-          window.location.href = new TextDecoder().decode(decrypted).trim();
+          const targetUrl = extractTargetUrl(new TextDecoder().decode(decrypted));
+
+          openLinkInViewer(pendingDecrypt.item, targetUrl, true);
         }
       } catch (e) {
         errEl.textContent = 'Access denied: Invalid passphrase.';

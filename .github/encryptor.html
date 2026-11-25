@@ -66,6 +66,7 @@
     .mode-tabs {
       display: flex;
       gap: 8px;
+      flex-wrap: wrap;
     }
     .mode-tab {
       background: #181b20;
@@ -139,6 +140,7 @@
     input[type="text"],
     input[type="url"],
     input[type="password"],
+    select,
     textarea {
       width: 100%;
       padding: 8px 10px;
@@ -149,11 +151,16 @@
       color: #e6edf3;
       outline: none;
     }
-    input:focus, textarea:focus {
+    select {
+      width: auto;
+      min-width: 115px;
+      cursor: pointer;
+    }
+    input:focus, select:focus, textarea:focus {
       border-color: #58a6ff;
     }
     textarea {
-      min-height: 110px;
+      min-height: 92px;
       resize: vertical;
       font-family: "Courier New", Courier, monospace;
       font-size: 12px;
@@ -245,6 +252,16 @@
       text-overflow: ellipsis;
       white-space: nowrap;
     }
+    .media-tag {
+      display: inline-block;
+      background: #13233a;
+      border: 1px solid #2b5797;
+      color: #79c0ff;
+      font-size: 10px;
+      padding: 1px 5px;
+      border-radius: 3px;
+      margin-left: 6px;
+    }
     .vault-subbox {
       padding: 12px;
       background: #14181e;
@@ -253,6 +270,45 @@
       display: flex;
       flex-direction: column;
       gap: 10px;
+    }
+    .subbox-title {
+      font-family: "Courier New", Courier, monospace;
+      font-size: 12px;
+      font-weight: 700;
+      color: #e6edf3;
+      border-bottom: 1px solid #262c34;
+      padding-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .hint-text {
+      font-size: 11px;
+      color: #8b949e;
+      line-height: 1.45;
+    }
+    details.bulk-drawer {
+      border-top: 1px solid #262c34;
+      padding-top: 8px;
+    }
+    details.bulk-drawer summary {
+      cursor: pointer;
+      font-family: "Courier New", Courier, monospace;
+      font-size: 11px;
+      font-weight: 700;
+      color: #58a6ff;
+      user-select: none;
+    }
+    details.bulk-drawer summary:hover {
+      text-decoration: underline;
+    }
+    .bulk-content {
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
     }
 
     /* Vault Binary Receipt Box */
@@ -372,6 +428,7 @@
     <div class="mode-tabs">
       <button class="mode-tab active" onclick="switchMode('vault', this)">📁 Locked Folder (.vault.txt)</button>
       <button class="mode-tab" onclick="switchMode('link', this)">🔗 Single Locked Link (.locked.txt)</button>
+      <button class="mode-tab" onclick="switchMode('public', this)">🌐 Public Drive Media (.url)</button>
     </div>
 
     <!-- MODE 1: LOCKED FOLDER BUILDER -->
@@ -390,19 +447,84 @@
             </div>
           </div>
 
+          <!-- Google Drive Video / Audio Link Uploader -->
           <div class="vault-subbox">
+            <div class="subbox-title">
+              <span>🎬 Add Google Drive Video / Audio Link</span>
+              <span style="font-size:11px; color:#8b949e; font-weight:400;">EMBEDS IN-PAGE • ZERO REPO BLOAT</span>
+            </div>
             <div class="field">
-              <label>Import Local Files (.html, .txt, Images, Audio .mp3/.wav, Video .mp4/.webm, .pdf)</label>
-              <input type="file" id="vaultUploadInput" multiple onchange="importLocalFiles(this)">
+              <label>Media Type & Display Name (use "/" for subfolders)</label>
+              <div class="input-row">
+                <select id="vMediaType" onchange="updateMediaSuffixHint()">
+                  <option value="video">Video</option>
+                  <option value="audio">Audio</option>
+                </select>
+                <input type="text" id="vMediaPath" placeholder="e.g. recordings/cctv-log-01">
+                <span class="suffix-hint" id="mediaSuffixHint">.video.url</span>
+              </div>
+            </div>
+            <div class="field">
+              <label>Google Drive Share URL</label>
+              <input type="url" id="vMediaUrl" placeholder="https://drive.google.com/file/d/1AbCdEf.../view?usp=sharing">
+              <span class="hint-text">Set file sharing on Google Drive to <strong>"Anyone with the link"</strong> so it plays inside the web viewer like a normal file.</span>
+            </div>
+            <div class="btn-row">
+              <button class="btn" type="button" onclick="addDriveMediaFile()">+ Add Drive Media to Folder</button>
             </div>
 
-            <div class="field">
-              <label>Or Add Manual Entry Path (use "/" for subfolders)</label>
-              <input type="text" id="vFilePath" placeholder="e.g. scp-096.html or recordings/log-01.url">
+            <!-- Bulk Paste / Upload Drive Links -->
+            <details class="bulk-drawer">
+              <summary>+ Bulk Paste or Upload Multiple Drive Links (.txt / .csv)</summary>
+              <div class="bulk-content">
+                <div class="field">
+                  <label>Media Type for Batch</label>
+                  <div class="input-row">
+                    <select id="vBulkMediaType">
+                      <option value="video">Video (.video.url)</option>
+                      <option value="audio">Audio (.audio.url)</option>
+                    </select>
+                    <input type="file" accept=".txt,.csv" onchange="importDriveLinksFile(this)">
+                  </div>
+                </div>
+                <div class="field">
+                  <label>Paste Lines (Format: Name | Google Drive URL)</label>
+                  <textarea id="vBulkMediaLines" placeholder="episode-01 | https://drive.google.com/file/d/1AbCdEf.../view?usp=sharing&#10;logs/recording-02 | https://drive.google.com/file/d/1XyZ987.../view?usp=sharing"></textarea>
+                </div>
+                <div class="btn-row">
+                  <button class="btn" type="button" onclick="addBulkDriveMedia()">+ Add All Lines to Folder</button>
+                </div>
+              </div>
+            </details>
+          </div>
+
+          <!-- Lightweight Local File Upload (Documents & Images Only) -->
+          <div class="vault-subbox">
+            <div class="subbox-title">
+              <span>📄 Import Local Documents & Images</span>
+              <span style="font-size:11px; color:#8b949e; font-weight:400;">HTML • TXT • PDF • IMAGES</span>
             </div>
             <div class="field">
-              <label>Manual Content (HTML, text, or external URL for .url files)</label>
-              <textarea id="vFileContent" placeholder="Paste HTML/text content, or URL..."></textarea>
+              <label>Select Files (.html, .txt, .md, .pdf, Images)</label>
+              <input
+                type="file"
+                id="vaultUploadInput"
+                accept=".html,.htm,.txt,.md,.log,.json,.pdf,.png,.jpg,.jpeg,.gif,.webp,.svg,.bmp,.ico"
+                multiple
+                onchange="importLocalFiles(this)">
+            </div>
+          </div>
+
+          <!-- Manual Text / HTML / General URL Entry -->
+          <div class="vault-subbox">
+            <div class="subbox-title">✏️ Add Manual Text / HTML / General Link Entry</div>
+            <div class="field">
+              <label>Entry Path (use "/" for subfolders)</label>
+              <input type="text" id="vFilePath" placeholder="e.g. scp-096.html or docs/drive-folder.url">
+            </div>
+            <div class="field">
+              <label>Content (HTML, plain text, or Google Drive folder/doc URL)</label>
+              <textarea id="vFileContent" placeholder="Paste HTML/text content, or a Google Drive URL..."></textarea>
             </div>
             <div class="btn-row">
               <button class="btn" type="button" onclick="addManualVaultFile()">+ Add Entry to Folder</button>
@@ -444,7 +566,7 @@
             </div>
           </div>
 
-          <!-- Binary Output Receipt (Replaces memory-heavy textarea) -->
+          <!-- Binary Output Receipt -->
           <div id="vaultReceipt" class="vault-receipt"></div>
           <div id="vaultStatus" class="status"></div>
         </div>
@@ -462,14 +584,15 @@
           <div class="field">
             <label>Display Name in Explorer</label>
             <div class="input-row">
-              <input type="text" id="fileNameInput" placeholder="e.g. external-drive-archive">
+              <input type="text" id="fileNameInput" placeholder="e.g. secret-recording">
               <span class="suffix-hint">.locked.txt</span>
             </div>
           </div>
 
           <div class="field">
-            <label>Target URL</label>
+            <label>Target Google Drive or External URL</label>
             <input type="url" id="urlInput" placeholder="https://drive.google.com/file/d/...">
+            <span class="hint-text">Google Drive video, audio, document, and folder links automatically embed inside the web viewer after decryption.</span>
           </div>
 
           <div class="field">
@@ -502,12 +625,52 @@
         </div>
       </div>
     </section>
+
+    <!-- MODE 3: PUBLIC DRIVE MEDIA FILE (.video.url / .audio.url) -->
+    <section id="mode-public" class="mode-section">
+      <div class="panel">
+        <div class="panel-header">
+          <span>CREATE UNLOCKED DRIVE VIDEO / AUDIO FILE</span>
+          <span style="font-size:11px; color:#8b949e;">FOR PUBLIC DIRECTORIES</span>
+        </div>
+        <div class="panel-body">
+          <div class="field">
+            <label>Media Type & Display Name</label>
+            <div class="input-row">
+              <select id="pubMediaType" onchange="updatePublicSuffixHint()">
+                <option value="video">Video</option>
+                <option value="audio">Audio</option>
+              </select>
+              <input type="text" id="pubMediaName" placeholder="e.g. demo-gameplay">
+              <span class="suffix-hint" id="pubSuffixHint">.video.url</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Google Drive Share URL</label>
+            <input type="url" id="pubMediaUrl" placeholder="https://drive.google.com/file/d/1AbCdEf.../view?usp=sharing">
+            <span class="hint-text">Place the downloaded <code>.video.url</code> or <code>.audio.url</code> file anywhere in your GitHub repo. It appears as a normal Video/Audio entry and embeds directly in-page.</span>
+          </div>
+
+          <div class="btn-row">
+            <button class="btn btn-primary" type="button" onclick="downloadPublicDriveMedia()">Download Media Link File</button>
+          </div>
+
+          <div id="publicStatus" class="status"></div>
+        </div>
+      </div>
+    </section>
   </main>
 
   <script>
     const ITERATIONS = 250000;
     const vaultFiles = [];
     let encryptedVaultBlob = null;
+
+    const BLOCKED_AV_EXTS = new Set([
+      'mp4', 'webm', 'ogv', 'mov', 'm4v', 'avi', 'mkv', 'wmv', 'flv',
+      'mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac', 'opus', 'wma'
+    ]);
 
     const MIME_MAP = {
       txt: 'text/plain;charset=utf-8',
@@ -523,18 +686,8 @@
       gif: 'image/gif',
       webp: 'image/webp',
       svg: 'image/svg+xml',
-      mp4: 'video/mp4',
-      webm: 'video/webm',
-      ogv: 'video/ogg',
-      mov: 'video/quicktime',
-      m4v: 'video/mp4',
-      mp3: 'audio/mpeg',
-      wav: 'audio/wav',
-      ogg: 'audio/ogg',
-      m4a: 'audio/mp4',
-      aac: 'audio/aac',
-      flac: 'audio/flac',
-      opus: 'audio/opus',
+      bmp: 'image/bmp',
+      ico: 'image/x-icon',
       url: 'text/plain;charset=utf-8',
       link: 'text/plain;charset=utf-8'
     };
@@ -544,6 +697,28 @@
     function guessMimeType(filename) {
       const ext = filename.includes('.') ? filename.split('.').pop().toLowerCase() : '';
       return MIME_MAP[ext] || 'application/octet-stream';
+    }
+
+    function updateMediaSuffixHint() {
+      const mediaType = document.getElementById('vMediaType').value;
+      document.getElementById('mediaSuffixHint').textContent = `.${mediaType}.url`;
+    }
+
+    function updatePublicSuffixHint() {
+      const mediaType = document.getElementById('pubMediaType').value;
+      document.getElementById('pubSuffixHint').textContent = `.${mediaType}.url`;
+    }
+
+    function extractDriveId(rawUrl) {
+      try {
+        const parsed = new URL(rawUrl);
+        if (parsed.hostname.toLowerCase() !== 'drive.google.com') return null;
+        const fileMatch = parsed.pathname.match(/\/file\/(?:u\/\d+\/)?d\/([a-zA-Z0-9_-]+)/);
+        if (fileMatch) return fileMatch[1];
+        const queryId = parsed.searchParams.get('id');
+        if (queryId && (parsed.pathname === '/open' || parsed.pathname === '/uc')) return queryId;
+      } catch (_) {}
+      return null;
     }
 
     function setProgress(prefix, pct, label, state = 'active') {
@@ -628,17 +803,142 @@
         return;
       }
 
-      listEl.innerHTML = vaultFiles.map((f, idx) => `
-        <div class="vault-item-row">
-          <span class="vault-item-name">📄 ${f.path} <span style="color:#8b949e;">(${formatSize(f.size)})</span></span>
-          <button class="btn btn-danger" type="button" onclick="removeVaultFile(${idx})">Remove</button>
-        </div>
-      `).join('');
+      listEl.innerHTML = vaultFiles.map((f, idx) => {
+        const lower = f.path.toLowerCase();
+        let icon = '📄';
+        let badge = '';
+        if (lower.endsWith('.video.url')) {
+          icon = '🎬';
+          badge = `<span class="media-tag">VIDEO LINK</span>`;
+        } else if (lower.endsWith('.audio.url')) {
+          icon = '🔊';
+          badge = `<span class="media-tag">AUDIO LINK</span>`;
+        } else if (lower.endsWith('.url') || lower.endsWith('.link')) {
+          icon = '🔗';
+          badge = `<span class="media-tag">LINK</span>`;
+        }
+
+        return `
+          <div class="vault-item-row">
+            <span class="vault-item-name">${icon} ${f.path}${badge} <span style="color:#8b949e;">(${formatSize(f.size)})</span></span>
+            <button class="btn btn-danger" type="button" onclick="removeVaultFile(${idx})">Remove</button>
+          </div>
+        `;
+      }).join('');
     }
 
     function removeVaultFile(idx) {
       vaultFiles.splice(idx, 1);
       renderVaultList();
+    }
+
+    function upsertVaultEntry(entry) {
+      const existingIdx = vaultFiles.findIndex(f => f.path === entry.path);
+      if (existingIdx >= 0) vaultFiles[existingIdx] = entry;
+      else vaultFiles.push(entry);
+      renderVaultList();
+    }
+
+    function createMediaUrlEntry(mediaType, rawPath, rawUrl) {
+      const cleanBasePath = rawPath
+        .trim()
+        .replace(/^\/+/, '')
+        .replace(/\.(video|audio)?\.(url|link)$/i, '')
+        .replace(/\.(mp4|webm|ogv|mov|m4v|mp3|wav|ogg|m4a|aac|flac|opus)$/i, '');
+
+      const finalPath = `${cleanBasePath}.${mediaType}.url`;
+      const encodedBytes = new TextEncoder().encode(rawUrl.trim());
+
+      return {
+        path: finalPath,
+        mime: 'text/plain;charset=utf-8',
+        size: encodedBytes.length,
+        modified: todayISO(),
+        rawBytes: encodedBytes,
+        fileObj: null
+      };
+    }
+
+    function addDriveMediaFile() {
+      const statusEl = document.getElementById('vaultStatus');
+      statusEl.className = 'status';
+      statusEl.textContent = '';
+
+      const mediaType = document.getElementById('vMediaType').value;
+      const rawPath = document.getElementById('vMediaPath').value.trim();
+      const rawUrl = document.getElementById('vMediaUrl').value.trim();
+
+      if (!rawPath || !rawUrl) {
+        statusEl.className = 'status err';
+        statusEl.textContent = 'Enter both an entry name/path and a Google Drive share URL.';
+        return;
+      }
+
+      try {
+        const parsed = new URL(rawUrl);
+        if (!['http:', 'https:'].includes(parsed.protocol)) {
+          throw new Error('Invalid URL protocol');
+        }
+      } catch (_) {
+        statusEl.className = 'status err';
+        statusEl.textContent = 'Enter a valid https:// Google Drive share URL.';
+        return;
+      }
+
+      const entry = createMediaUrlEntry(mediaType, rawPath, rawUrl);
+      upsertVaultEntry(entry);
+
+      document.getElementById('vMediaPath').value = '';
+      document.getElementById('vMediaUrl').value = '';
+
+      const driveId = extractDriveId(rawUrl);
+      statusEl.className = 'status ok';
+      statusEl.textContent = driveId
+        ? `Added ${entry.path} (Google Drive ID: ${driveId})`
+        : `Added ${entry.path}`;
+    }
+
+    function parseAndAddBulkLines(rawText, mediaType) {
+      const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      let added = 0;
+
+      lines.forEach(line => {
+        const sepMatch = line.match(/^(.+?)\s*(?:\||,|\t)\s*(https?:\/\/\S+)$/i);
+        if (!sepMatch) return;
+        const namePart = sepMatch[1].trim();
+        const urlPart = sepMatch[2].trim();
+        if (!namePart || !urlPart) return;
+
+        upsertVaultEntry(createMediaUrlEntry(mediaType, namePart, urlPart));
+        added++;
+      });
+
+      return added;
+    }
+
+    function addBulkDriveMedia() {
+      const statusEl = document.getElementById('vaultStatus');
+      const mediaType = document.getElementById('vBulkMediaType').value;
+      const box = document.getElementById('vBulkMediaLines');
+      const added = parseAndAddBulkLines(box.value, mediaType);
+
+      if (added === 0) {
+        statusEl.className = 'status err';
+        statusEl.textContent = 'No valid lines found. Use format: File Name | https://drive.google.com/...';
+        return;
+      }
+
+      box.value = '';
+      statusEl.className = 'status ok';
+      statusEl.textContent = `Added ${added} Google Drive ${mediaType} link(s) to folder.`;
+    }
+
+    async function importDriveLinksFile(input) {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      const text = await file.text();
+      document.getElementById('vBulkMediaLines').value = text;
+      input.value = '';
     }
 
     function addManualVaultFile() {
@@ -647,43 +947,51 @@
       if (!path || !content) return alert('Enter both a file path (with extension like .html, .url, or .txt) and content.');
 
       const encodedBytes = new TextEncoder().encode(content);
-      const entry = {
+      upsertVaultEntry({
         path,
         mime: guessMimeType(path),
         size: encodedBytes.length,
         modified: todayISO(),
         rawBytes: encodedBytes,
         fileObj: null
-      };
-
-      const existingIdx = vaultFiles.findIndex(f => f.path === path);
-      if (existingIdx >= 0) vaultFiles[existingIdx] = entry;
-      else vaultFiles.push(entry);
+      });
 
       document.getElementById('vFilePath').value = '';
       document.getElementById('vFileContent').value = '';
-      renderVaultList();
     }
 
     function importLocalFiles(input) {
+      const statusEl = document.getElementById('vaultStatus');
+      statusEl.className = 'status';
+      statusEl.textContent = '';
+
       const files = Array.from(input.files || []);
       if (files.length === 0) return;
 
+      const skippedAv = [];
+
       files.forEach(file => {
-        const entry = {
+        const ext = file.name.includes('.') ? file.name.split('.').pop().toLowerCase() : '';
+        if (file.type.startsWith('video/') || file.type.startsWith('audio/') || BLOCKED_AV_EXTS.has(ext)) {
+          skippedAv.push(file.name);
+          return;
+        }
+
+        upsertVaultEntry({
           path: file.name,
           mime: file.type || guessMimeType(file.name),
           size: file.size,
           modified: todayISO(),
           rawBytes: null,
-          fileObj: file // Kept on disk until Encrypt is clicked (zero RAM overhead)
-        };
-        const existingIdx = vaultFiles.findIndex(f => f.path === file.name);
-        if (existingIdx >= 0) vaultFiles[existingIdx] = entry;
-        else vaultFiles.push(entry);
+          fileObj: file
+        });
       });
 
-      renderVaultList();
+      if (skippedAv.length > 0) {
+        statusEl.className = 'status err';
+        statusEl.textContent = `Skipped audio/video file(s) (${skippedAv.join(', ')}) — paste their Google Drive links in the section above instead.`;
+      }
+
       input.value = '';
     }
 
@@ -716,7 +1024,7 @@
       const password = document.getElementById('vaultPassInput').value;
       if (vaultFiles.length === 0) {
         statusEl.className = 'status err';
-        statusEl.textContent = 'Add at least one file to the folder first.';
+        statusEl.textContent = 'Add at least one file or link to the folder first.';
         return;
       }
       if (!password) {
@@ -746,7 +1054,6 @@
         const headerBytes = new TextEncoder().encode(JSON.stringify(metaList));
         const totalPayloadBytes = 4 + headerBytes.length + currentOffset;
 
-        // Single contiguous buffer for plaintext archive
         let payloadBuffer = new Uint8Array(totalPayloadBytes);
         new DataView(payloadBuffer.buffer).setUint32(0, headerBytes.length, false);
         payloadBuffer.set(headerBytes, 4);
@@ -779,13 +1086,11 @@
         await nextTick();
         const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, payloadBuffer);
 
-        // Release plaintext buffer immediately for garbage collection
         payloadBuffer = null;
 
         setProgress('vault', 95, 'Finalizing OOSV1 binary container...', 'active');
         await nextTick();
 
-        // Header: "OOSV" (4 bytes) + version 0x01 (1 byte) + salt (16 bytes) + iv (12 bytes)
         const magicHeader = new Uint8Array([0x4F, 0x4F, 0x53, 0x56, 0x01]);
         encryptedVaultBlob = new Blob(
           [magicHeader, salt, iv, ciphertext],
@@ -797,9 +1102,9 @@
 
         receiptEl.innerHTML = `
           <strong style="color:#3fb950;">✓ OOSV1 ENCRYPTED CONTAINER READY</strong><br>
-          • Packed Entries: ${vaultFiles.length} file(s)<br>
+          • Packed Entries: ${vaultFiles.length} item(s)<br>
           • Final Archive Size: ${formatSize(encryptedVaultBlob.size)}<br>
-          • Format: Raw Binary AES-256-GCM (Zero-Copy Stream)
+          • Format: Raw Binary AES-256-GCM
         `;
         receiptEl.classList.add('visible');
         statusEl.className = 'status ok';
@@ -887,6 +1192,47 @@
       link.download = `${cleanBase}.locked.txt`;
       link.click();
       setTimeout(() => URL.revokeObjectURL(link.href), 5000);
+    }
+
+    function downloadPublicDriveMedia() {
+      const statusEl = document.getElementById('publicStatus');
+      statusEl.className = 'status';
+      statusEl.textContent = '';
+
+      const mediaType = document.getElementById('pubMediaType').value;
+      const rawName = document.getElementById('pubMediaName').value.trim();
+      const rawUrl = document.getElementById('pubMediaUrl').value.trim();
+
+      if (!rawName || !rawUrl) {
+        statusEl.className = 'status err';
+        statusEl.textContent = 'Enter both a display name and a Google Drive share URL.';
+        return;
+      }
+
+      try {
+        const parsed = new URL(rawUrl);
+        if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error();
+      } catch (_) {
+        statusEl.className = 'status err';
+        statusEl.textContent = 'Enter a valid https:// Google Drive share URL.';
+        return;
+      }
+
+      const cleanBase = rawName
+        .replace(/\.(video|audio)?\.(url|link)$/i, '')
+        .replace(/\.(mp4|webm|ogv|mov|m4v|mp3|wav|ogg|m4a|aac|flac|opus)$/i, '')
+        .replace(/[^a-zA-Z0-9._-]/g, '_');
+
+      const fileName = `${cleanBase}.${mediaType}.url`;
+      const blob = new Blob([rawUrl + '\n'], { type: 'text/plain;charset=utf-8' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = fileName;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(link.href), 5000);
+
+      statusEl.className = 'status ok';
+      statusEl.textContent = `Downloaded ${fileName}.`;
     }
   </script>
 </body>
