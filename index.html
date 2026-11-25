@@ -80,6 +80,19 @@
       border-color: #484f58;
       color: #ffffff;
     }
+    .btn-lock {
+      background: #272118;
+      border-color: #5c431f;
+      color: #e3b341;
+      font-family: "Courier New", Courier, monospace;
+      font-size: 11px;
+      padding: 3px 9px;
+    }
+    .btn-lock:hover {
+      background: #382e1f;
+      border-color: #e3b341;
+      color: #fde047;
+    }
 
     /* Shared Panel Shell (Directory & Content Viewer) */
     .main-panel {
@@ -133,7 +146,7 @@
     .column-header,
     .file-row {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 110px 125px;
+      grid-template-columns: minmax(0, 1fr) 125px 125px;
       align-items: center;
       gap: 12px;
       padding-left: 14px;
@@ -221,6 +234,15 @@
       padding: 1px 6px;
       border-radius: 3px;
     }
+    .type-unlocked {
+      display: inline-block;
+      background: #13261b;
+      border: 1px solid #2ea043;
+      color: #3fb950;
+      font-size: 11px;
+      padding: 1px 6px;
+      border-radius: 3px;
+    }
     .row-meta {
       color: #8b949e;
       font-family: "Courier New", Courier, monospace;
@@ -271,7 +293,7 @@
       background: #ffffff;
       min-height: 65vh;
     }
-    .viewer-image-stage {
+    .viewer-media-stage {
       flex: 1;
       display: flex;
       align-items: center;
@@ -280,12 +302,72 @@
       overflow: auto;
       background: #0d1014;
     }
-    .viewer-image-stage img {
+    .viewer-media-stage img {
       max-width: 100%;
       max-height: 75vh;
       border: 1px solid #2d333b;
       border-radius: 3px;
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+    }
+    .viewer-media-stage video {
+      max-width: 100%;
+      max-height: 75vh;
+      background: #000000;
+      border: 1px solid #2d333b;
+      border-radius: 4px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.65);
+      outline: none;
+    }
+    .viewer-audio-card {
+      width: 100%;
+      max-width: 520px;
+      background: #181b20;
+      border: 1px solid #2d333b;
+      border-radius: 6px;
+      padding: 22px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    }
+    .audio-card-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .audio-icon-box {
+      width: 44px;
+      height: 44px;
+      border-radius: 6px;
+      background: #21262d;
+      border: 1px solid #30363d;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .audio-title-group {
+      min-width: 0;
+    }
+    .audio-title {
+      font-family: "Courier New", Courier, monospace;
+      font-size: 15px;
+      font-weight: 700;
+      color: #e6edf3;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .audio-sub {
+      font-family: "Courier New", Courier, monospace;
+      font-size: 12px;
+      color: #8b949e;
+      margin-top: 3px;
+    }
+    .viewer-audio-card audio {
+      width: 100%;
+      height: 40px;
+      outline: none;
     }
     .viewer-text {
       margin: 0;
@@ -360,13 +442,14 @@
       .container { padding: 10px 14px 16px; }
       .column-header,
       .file-row {
-        grid-template-columns: minmax(0, 1fr) 82px 96px;
+        grid-template-columns: minmax(0, 1fr) 98px 94px;
         gap: 8px;
         padding-left: 10px;
         padding-right: 10px;
       }
       .viewer-text { padding: 16px; font-size: 13px; }
-      .viewer-image-stage { padding: 12px; }
+      .viewer-media-stage { padding: 12px; }
+      .viewer-audio-card { padding: 16px; }
     }
   </style>
 </head>
@@ -396,6 +479,7 @@
     <div class="main-panel">
       <div class="list-header">
         <nav class="breadcrumb" id="breadcrumb"></nav>
+        <div id="headerActions"></div>
       </div>
 
       <!-- DIRECTORY TABLE VIEW -->
@@ -424,33 +508,73 @@
     <!-- AES-GCM Passphrase Box -->
     <div id="decryptBox" class="decrypt-box">
       <div class="decrypt-box-header">
-        <span>🔒 Enter clearance passphrase to decrypt <strong id="decryptTargetName"></strong>:</span>
+        <span id="decryptPromptLabel">🔒 Enter clearance passphrase:</span>
         <button class="btn" onclick="closeDecryptBox()">✕</button>
       </div>
       <div class="decrypt-controls">
-        <input type="password" id="passInput" placeholder="Passphrase..." onkeydown="if(event.key==='Enter') decryptAndRedirect()">
-        <button class="btn btn-primary" onclick="decryptAndRedirect()">Decrypt & Open</button>
+        <input type="password" id="passInput" placeholder="Passphrase..." onkeydown="if(event.key==='Enter') handleDecryptSubmit()">
+        <button class="btn btn-primary" id="decryptSubmitBtn" onclick="handleDecryptSubmit()">Decrypt & Open</button>
       </div>
       <div id="decryptError" class="error-text"></div>
     </div>
   </main>
 
   <script>
-    let allEntries = [];
+    let repoEntries = [];
     let currentPath = '';
     let activeFile = null;
-    let activeLockedPath = '';
+    let activeBlobUrl = null;
+    let pendingDecrypt = null;
+
+    // Stores unlocked vaults in memory: Map<virtualRootPath, Array<virtualEntry>>
+    const unlockedVaults = new Map();
 
     const IMAGE_EXTS = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico']);
+    const VIDEO_EXTS = new Set(['mp4', 'webm', 'ogv', 'mov', 'm4v']);
+    const AUDIO_EXTS = new Set(['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac', 'opus']);
     const FRAME_EXTS = new Set(['html', 'htm', 'pdf']);
+    const LINK_EXTS  = new Set(['url', 'link']);
 
     const ICONS = {
       home: `<svg width="14" height="14" viewBox="0 0 16 16" fill="#58a6ff"><path d="M8 1.5L1 7.5h2v6h4v-4h2v4h4v-6h2L8 1.5z"/></svg>`,
       folder: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#8b949e" stroke-width="1.3"><path d="M1.5 3.5h4.5l1.5 1.5h7v7.5h-13z"/></svg>`,
+      folderLocked: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#e3b341" stroke-width="1.3"><path d="M1.5 3.5h4.5l1.5 1.5h7v7.5h-13z"/><rect x="9.5" y="7.5" width="4.5" height="3.8" rx="0.6" fill="#181b20"/><path d="M10.6 7.5V6.3a1.15 1.15 0 0 1 2.3 0v1.2"/></svg>`,
+      folderUnlocked: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#3fb950" stroke-width="1.3"><path d="M1.5 3.5h4.5l1.5 1.5h7v7.5h-13z"/></svg>`,
       notebook: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#8b949e" stroke-width="1.3"><rect x="3" y="1.5" width="10" height="13" rx="1"/><line x1="5.5" y1="5" x2="10.5" y2="5"/><line x1="5.5" y1="8" x2="10.5" y2="8"/><line x1="5.5" y1="11" x2="8.5" y2="11"/></svg>`,
       image: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#8b949e" stroke-width="1.3"><rect x="2" y="2.5" width="12" height="11" rx="1"/><circle cx="5.5" cy="6" r="1.1"/><path d="M2.5 11.5l3.2-3.2 2.3 2.3 2.5-2.5 3 3.4"/></svg>`,
+      video: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#8b949e" stroke-width="1.3"><rect x="1.8" y="3" width="12.4" height="10" rx="1.2"/><polygon points="6.5,5.5 11,8 6.5,10.5" fill="#8b949e" stroke="none"/></svg>`,
+      audio: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#8b949e" stroke-width="1.3"><path d="M2.5 6.2h2.4l3.1-2.7v9l-3.1-2.7H2.5z"/><path d="M10.5 5.5a3.5 3.5 0 0 1 0 5"/><path d="M12.3 3.8a6 6 0 0 1 0 8.4"/></svg>`,
       lock: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#e3b341" stroke-width="1.3"><rect x="3" y="7" width="10" height="7" rx="1"/><path d="M5 7V5a3 3 0 0 1 6 0v2"/></svg>`
     };
+
+    function isVaultFile(item) {
+      return item && item.type === 'file' && item.name.toLowerCase().endsWith('.vault.txt');
+    }
+
+    function isLockedLinkFile(item) {
+      return item && item.type === 'file' && (item.locked || item.name.toLowerCase().endsWith('.locked.txt'));
+    }
+
+    function getVaultVirtualPath(vaultItem) {
+      return vaultItem.path.replace(/\.vault\.txt$/i, '');
+    }
+
+    function getAllCombinedEntries() {
+      const combined = [...repoEntries];
+      unlockedVaults.forEach((entries) => {
+        combined.push(...entries);
+      });
+      return combined;
+    }
+
+    function findActiveVaultRoot(path) {
+      for (const vaultRoot of unlockedVaults.keys()) {
+        if (path === vaultRoot || path.startsWith(vaultRoot + '/')) {
+          return vaultRoot;
+        }
+      }
+      return null;
+    }
 
     function getPathFromHash() {
       const raw = window.location.hash.replace(/^#\/?/, '');
@@ -479,7 +603,7 @@
     window.addEventListener('popstate', (event) => {
       if (event.state && typeof event.state.path === 'string') {
         if (event.state.file) {
-          const entry = allEntries.find(e => e.path === event.state.file);
+          const entry = getAllCombinedEntries().find(e => e.path === event.state.file);
           if (entry) {
             currentPath = event.state.path;
             openFileViewer(entry, false);
@@ -494,7 +618,8 @@
 
     function resolveRouteFromHash(seedHistory = true) {
       const hashPath = getPathFromHash();
-      const matchedFile = allEntries.find(e => e.path === hashPath && e.type === 'file' && !e.locked);
+      const combined = getAllCombinedEntries();
+      const matchedFile = combined.find(e => e.path === hashPath && e.type === 'file' && !isLockedLinkFile(e) && !isVaultFile(e));
 
       if (matchedFile) {
         const lastSlash = matchedFile.path.lastIndexOf('/');
@@ -505,20 +630,37 @@
           history.pushState({ path: parentFolder, file: matchedFile.path }, '', buildHashUrl(matchedFile.path));
         }
         openFileViewer(matchedFile, false);
-      } else {
-        currentPath = hashPath;
-        if (seedHistory) {
-          seedHistoryForFolder(hashPath);
-        }
-        navigateTo(hashPath, false);
+        return;
       }
+
+      const lockedVault = repoEntries.find(e => {
+        if (!isVaultFile(e)) return false;
+        const vPath = getVaultVirtualPath(e);
+        return !unlockedVaults.has(vPath) && (hashPath === vPath || hashPath.startsWith(vPath + '/'));
+      });
+
+      if (lockedVault) {
+        const lastSlash = lockedVault.path.lastIndexOf('/');
+        const parentFolder = lastSlash === -1 ? '' : lockedVault.path.substring(0, lastSlash);
+        currentPath = parentFolder;
+        if (seedHistory) seedHistoryForFolder(parentFolder);
+        navigateTo(parentFolder, false);
+        openDecryptBox('vault', lockedVault);
+        return;
+      }
+
+      currentPath = hashPath;
+      if (seedHistory) {
+        seedHistoryForFolder(hashPath);
+      }
+      navigateTo(hashPath, false);
     }
 
     async function loadManifest() {
       try {
         const res = await fetch('manifest.json?t=' + Date.now());
         if (!res.ok) throw new Error('manifest.json not found');
-        allEntries = await res.json();
+        repoEntries = await res.json();
         resolveRouteFromHash(true);
       } catch (err) {
         document.getElementById('fileList').innerHTML = `
@@ -529,18 +671,40 @@
       }
     }
 
+    function cleanupViewerMedia() {
+      const viewerBody = document.getElementById('viewerBody');
+      viewerBody.querySelectorAll('video, audio').forEach(el => {
+        el.pause();
+        el.removeAttribute('src');
+        el.load();
+      });
+      viewerBody.innerHTML = '';
+
+      if (activeBlobUrl) {
+        URL.revokeObjectURL(activeBlobUrl);
+        activeBlobUrl = null;
+      }
+    }
+
     function navigateTo(folderPath, pushHistory = true) {
       if (pushHistory && (folderPath !== currentPath || activeFile !== null)) {
         history.pushState({ path: folderPath, file: null }, '', buildHashUrl(folderPath));
       }
       currentPath = folderPath;
       activeFile = null;
+      cleanupViewerMedia();
       closeDecryptBox();
 
       document.getElementById('viewerView').style.display = 'none';
-      document.getElementById('viewerBody').innerHTML = '';
       document.getElementById('directoryView').style.display = 'flex';
       renderDirectory();
+    }
+
+    function lockVault(vaultRoot) {
+      unlockedVaults.delete(vaultRoot);
+      const lastSlash = vaultRoot.lastIndexOf('/');
+      const parentFolder = lastSlash === -1 ? '' : vaultRoot.substring(0, lastSlash);
+      navigateTo(parentFolder, true);
     }
 
     function closeViewer() {
@@ -567,13 +731,20 @@
         html += `<span class="sep">/</span><span class="current-file">${getCleanName(activeFile)}</span>`;
       }
       bc.innerHTML = html;
+
+      const actionsEl = document.getElementById('headerActions');
+      const activeVaultRoot = findActiveVaultRoot(currentPath);
+      if (activeVaultRoot) {
+        actionsEl.innerHTML = `<button class="btn btn-lock" type="button" onclick="lockVault('${activeVaultRoot}')">🔒 Lock Folder</button>`;
+      } else {
+        actionsEl.innerHTML = '';
+      }
     }
 
     function getCleanName(item) {
       if (item.type === 'dir') return item.name;
-      if (item.locked || item.name.endsWith('.locked.txt')) {
-        return item.name.replace(/\.locked\.txt$/i, '');
-      }
+      if (isVaultFile(item)) return item.name.replace(/\.vault\.txt$/i, '');
+      if (isLockedLinkFile(item)) return item.name.replace(/\.locked\.txt$/i, '');
       const lastDot = item.name.lastIndexOf('.');
       return lastDot > 0 ? item.name.substring(0, lastDot) : item.name;
     }
@@ -586,8 +757,12 @@
     }
 
     function getFileType(item) {
+      if (isVaultFile(item)) {
+        const vPath = getVaultVirtualPath(item);
+        return unlockedVaults.has(vPath) ? 'Unlocked' : 'Locked Folder';
+      }
       if (item.type === 'dir') return 'Folder';
-      if (item.locked || item.name.endsWith('.locked.txt')) return 'Encrypted';
+      if (isLockedLinkFile(item)) return 'Encrypted';
       const ext = getExtension(item.name);
       return ext ? ext.toUpperCase() : 'File';
     }
@@ -596,7 +771,7 @@
       if (item.modified) return item.modified;
       if (item.type === 'dir') {
         const prefix = item.path + '/';
-        const childDates = allEntries
+        const childDates = getAllCombinedEntries()
           .filter(e => e.path.startsWith(prefix) && e.modified)
           .map(e => e.modified)
           .sort();
@@ -628,14 +803,16 @@
         listEl.appendChild(upRow);
       }
 
-      const items = allEntries.filter(entry => {
+      const items = getAllCombinedEntries().filter(entry => {
         const lastSlash = entry.path.lastIndexOf('/');
         const parent = lastSlash === -1 ? '' : entry.path.substring(0, lastSlash);
         return parent === currentPath;
       });
 
       items.sort((a, b) => {
-        if (a.type !== b.type) return a.type === 'dir' ? -1 : 1;
+        const aIsDirLike = a.type === 'dir' || isVaultFile(a);
+        const bIsDirLike = b.type === 'dir' || isVaultFile(b);
+        if (aIsDirLike !== bIsDirLike) return aIsDirLike ? -1 : 1;
         return a.name.localeCompare(b.name);
       });
 
@@ -654,17 +831,30 @@
         const cleanName = getCleanName(item);
         const fileType = getFileType(item);
         const ext = getExtension(item.name);
+        const vault = isVaultFile(item);
+        const lockedLink = isLockedLinkFile(item);
+        const vaultVirtualPath = vault ? getVaultVirtualPath(item) : '';
+        const isVaultUnlocked = vault && unlockedVaults.has(vaultVirtualPath);
 
         let icon = ICONS.notebook;
-        if (item.type === 'dir') {
+        if (vault) {
+          icon = isVaultUnlocked ? ICONS.folderUnlocked : ICONS.folderLocked;
+          row.title = isVaultUnlocked ? `Open unlocked folder ${cleanName}` : `Unlock folder ${cleanName}`;
+        } else if (item.type === 'dir') {
           icon = ICONS.folder;
           row.title = `Open folder ${cleanName}`;
-        } else if (item.locked) {
+        } else if (lockedLink) {
           icon = ICONS.lock;
           row.title = `Unlock ${cleanName}`;
         } else if (IMAGE_EXTS.has(ext)) {
           icon = ICONS.image;
           row.title = `View image ${cleanName}`;
+        } else if (VIDEO_EXTS.has(ext)) {
+          icon = ICONS.video;
+          row.title = `Play video ${cleanName}`;
+        } else if (AUDIO_EXTS.has(ext)) {
+          icon = ICONS.audio;
+          row.title = `Play audio ${cleanName}`;
         } else {
           row.title = `Open ${cleanName}`;
         }
@@ -672,7 +862,7 @@
         const link = document.createElement('a');
         link.className = 'item-link';
         link.textContent = cleanName;
-        if (item.type !== 'dir' && !item.locked) {
+        if (item.type !== 'dir' && !lockedLink && !vault) {
           link.href = buildHashUrl(item.path);
           link.onclick = (e) => {
             e.preventDefault();
@@ -681,10 +871,16 @@
         }
 
         row.onclick = (e) => {
-          if (item.type === 'dir') {
+          if (vault) {
+            if (isVaultUnlocked) {
+              navigateTo(vaultVirtualPath);
+            } else {
+              openDecryptBox('vault', item);
+            }
+          } else if (item.type === 'dir') {
             navigateTo(item.path);
-          } else if (item.locked) {
-            openDecryptBox(item.path, cleanName);
+          } else if (lockedLink) {
+            openDecryptBox('file', item);
           } else if (e.target.tagName !== 'A') {
             openFileViewer(item, true);
           }
@@ -697,7 +893,11 @@
 
         const typeCol = document.createElement('div');
         typeCol.className = 'row-type';
-        if (item.locked) {
+        if (vault) {
+          typeCol.innerHTML = isVaultUnlocked
+            ? `<span class="type-unlocked">${fileType}</span>`
+            : `<span class="type-locked">${fileType}</span>`;
+        } else if (lockedLink) {
           typeCol.innerHTML = `<span class="type-locked">${fileType}</span>`;
         } else {
           typeCol.textContent = fileType;
@@ -714,12 +914,58 @@
       });
     }
 
+    function dataUrlToBlobUrl(dataUrl) {
+      const parts = dataUrl.split(',');
+      const mimeMatch = parts[0].match(/:(.*?);/);
+      const mime = mimeMatch ? mimeMatch[1] : 'application/octet-stream';
+      const binary = atob(parts[1]);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      return URL.createObjectURL(new Blob([bytes], { type: mime }));
+    }
+
+    function renderAudioPlayer(viewerBody, src, title, subtitle) {
+      viewerBody.innerHTML = `
+        <div class="viewer-media-stage">
+          <div class="viewer-audio-card">
+            <div class="audio-card-header">
+              <div class="audio-icon-box">
+                <svg width="22" height="22" viewBox="0 0 16 16" fill="none" stroke="#58a6ff" stroke-width="1.4">
+                  <path d="M2.5 6.2h2.4l3.1-2.7v9l-3.1-2.7H2.5z"/>
+                  <path d="M10.5 5.5a3.5 3.5 0 0 1 0 5"/>
+                  <path d="M12.3 3.8a6 6 0 0 1 0 8.4"/>
+                </svg>
+              </div>
+              <div class="audio-title-group">
+                <div class="audio-title">${title}</div>
+                <div class="audio-sub">${subtitle}</div>
+              </div>
+            </div>
+            <audio controls preload="metadata" src="${src}"></audio>
+          </div>
+        </div>`;
+    }
+
     async function openFileViewer(item, pushHistory = true) {
+      const ext = getExtension(item.name);
+
+      // Handle external link entries inside unlocked vaults
+      if (item.virtual && LINK_EXTS.has(ext)) {
+        const targetUrl = item.rawBytes
+          ? new TextDecoder().decode(item.rawBytes).trim()
+          : (item.content || '').trim();
+        window.open(targetUrl, '_blank', 'noopener');
+        return;
+      }
+
       if (pushHistory) {
         history.pushState({ path: currentPath, file: item.path }, '', buildHashUrl(item.path));
       }
 
       activeFile = item;
+      cleanupViewerMedia();
       closeDecryptBox();
       renderBreadcrumb();
 
@@ -728,21 +974,66 @@
       const viewerBody = document.getElementById('viewerBody');
       viewerView.style.display = 'flex';
 
+      const cleanName = getCleanName(item);
       const fileType = getFileType(item);
       const modified = getModifiedDate(item);
-      document.getElementById('viewerMeta').textContent = `${fileType} • Modified ${modified}`;
-      document.getElementById('viewerRawLink').href = item.path;
+      const metaLabel = `${fileType} • Modified ${modified}`;
+      document.getElementById('viewerMeta').textContent = metaLabel;
 
-      const ext = getExtension(item.name);
+      const rawLinkEl = document.getElementById('viewerRawLink');
+
+      // Resolve source URL (public path, OOSV1 binary slice, or legacy JSON content)
+      let mediaSrc = item.path;
+      let virtualText = null;
+
+      if (item.virtual) {
+        if (item.rawBytes) {
+          const isTextLike = !IMAGE_EXTS.has(ext) && !VIDEO_EXTS.has(ext) && !AUDIO_EXTS.has(ext) && !FRAME_EXTS.has(ext);
+          if (isTextLike) {
+            virtualText = new TextDecoder().decode(item.rawBytes);
+          }
+          activeBlobUrl = URL.createObjectURL(new Blob([item.rawBytes], { type: item.mime || 'application/octet-stream' }));
+          mediaSrc = activeBlobUrl;
+        } else if (item.content && item.content.startsWith('data:')) {
+          activeBlobUrl = dataUrlToBlobUrl(item.content);
+          mediaSrc = activeBlobUrl;
+        } else if (IMAGE_EXTS.has(ext) || VIDEO_EXTS.has(ext) || AUDIO_EXTS.has(ext)) {
+          mediaSrc = (item.content || '').trim();
+        } else {
+          virtualText = item.content || '';
+          const mime = ext === 'pdf'
+            ? 'application/pdf'
+            : FRAME_EXTS.has(ext)
+              ? 'text/html;charset=utf-8'
+              : 'text/plain;charset=utf-8';
+          activeBlobUrl = URL.createObjectURL(new Blob([virtualText], { type: mime }));
+          mediaSrc = activeBlobUrl;
+        }
+      }
+
+      rawLinkEl.href = mediaSrc;
 
       if (IMAGE_EXTS.has(ext)) {
         viewerBody.innerHTML = `
-          <div class="viewer-image-stage">
-            <img src="${item.path}" alt="${getCleanName(item)}">
+          <div class="viewer-media-stage">
+            <img src="${mediaSrc}" alt="${cleanName}">
           </div>`;
+      } else if (VIDEO_EXTS.has(ext)) {
+        viewerBody.innerHTML = `
+          <div class="viewer-media-stage">
+            <video controls playsinline preload="metadata" src="${mediaSrc}"></video>
+          </div>`;
+      } else if (AUDIO_EXTS.has(ext)) {
+        renderAudioPlayer(viewerBody, mediaSrc, cleanName, metaLabel);
       } else if (FRAME_EXTS.has(ext)) {
         viewerBody.innerHTML = `
-          <iframe class="viewer-frame" src="${item.path}" title="${getCleanName(item)}"></iframe>`;
+          <iframe class="viewer-frame" src="${mediaSrc}" title="${cleanName}"></iframe>`;
+      } else if (item.virtual) {
+        const pre = document.createElement('pre');
+        pre.className = 'viewer-text';
+        pre.textContent = virtualText;
+        viewerBody.innerHTML = '';
+        viewerBody.appendChild(pre);
       } else {
         viewerBody.innerHTML = `<div class="viewer-loading">Loading file contents...</div>`;
         try {
@@ -760,9 +1051,14 @@
       }
     }
 
-    function openDecryptBox(filePath, displayName) {
-      activeLockedPath = filePath;
-      document.getElementById('decryptTargetName').textContent = displayName;
+    function openDecryptBox(type, item) {
+      pendingDecrypt = { type, item };
+      const label = document.getElementById('decryptPromptLabel');
+      const displayName = getCleanName(item);
+      label.innerHTML = type === 'vault'
+        ? `🔒 Enter clearance passphrase to unlock folder <strong>${displayName}</strong>:`
+        : `🔒 Enter clearance passphrase to decrypt <strong>${displayName}</strong>:`;
+
       document.getElementById('decryptError').textContent = '';
       document.getElementById('passInput').value = '';
       document.getElementById('decryptBox').style.display = 'block';
@@ -771,40 +1067,141 @@
 
     function closeDecryptBox() {
       document.getElementById('decryptBox').style.display = 'none';
-      activeLockedPath = '';
+      pendingDecrypt = null;
     }
 
-    async function decryptAndRedirect() {
+    async function deriveAesKey(password, salt) {
+      const enc = new TextEncoder();
+      const keyMaterial = await crypto.subtle.importKey(
+        'raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']
+      );
+      return crypto.subtle.deriveKey(
+        { name: 'PBKDF2', salt, iterations: 250000, hash: 'SHA-256' },
+        keyMaterial,
+        { name: 'AES-GCM', length: 256 },
+        false,
+        ['decrypt']
+      );
+    }
+
+    function mountVirtualFiles(vaultRoot, fallbackDate, fileRecords) {
+      const mountedEntries = [];
+      const createdDirs = new Set();
+
+      fileRecords.forEach(file => {
+        const relPath = file.path.replace(/^\/+/, '');
+        const fullPath = `${vaultRoot}/${relPath}`;
+        const parts = relPath.split('/');
+
+        if (parts.length > 1) {
+          let dirAccum = vaultRoot;
+          for (let i = 0; i < parts.length - 1; i++) {
+            dirAccum += '/' + parts[i];
+            if (!createdDirs.has(dirAccum)) {
+              createdDirs.add(dirAccum);
+              mountedEntries.push({
+                name: parts[i],
+                path: dirAccum,
+                type: 'dir',
+                modified: file.modified || fallbackDate || '',
+                virtual: true
+              });
+            }
+          }
+        }
+
+        mountedEntries.push({
+          name: parts[parts.length - 1],
+          path: fullPath,
+          type: 'file',
+          modified: file.modified || fallbackDate || '',
+          mime: file.mime || '',
+          rawBytes: file.rawBytes || null,
+          content: file.content || '',
+          virtual: true
+        });
+      });
+
+      unlockedVaults.set(vaultRoot, mountedEntries);
+      navigateTo(vaultRoot, true);
+    }
+
+    async function handleDecryptSubmit() {
+      if (!pendingDecrypt) return;
       const password = document.getElementById('passInput').value;
       const errEl = document.getElementById('decryptError');
+      const submitBtn = document.getElementById('decryptSubmitBtn');
       errEl.textContent = '';
 
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Decrypting...';
+
       try {
-        const res = await fetch(activeLockedPath);
-        const hex = (await res.text()).trim();
-        const bytes = new Uint8Array(hex.match(/.{1,2}/g).map(b => parseInt(b, 16)));
+        const res = await fetch(pendingDecrypt.item.path + '?t=' + Date.now());
+        if (!res.ok) throw new Error('Could not fetch encrypted file');
 
-        const salt = bytes.slice(0, 16);
-        const iv = bytes.slice(16, 28);
-        const ciphertext = bytes.slice(28);
+        if (pendingDecrypt.type === 'vault') {
+          const buf = await res.arrayBuffer();
+          const bytes = new Uint8Array(buf);
+          const vaultRoot = getVaultVirtualPath(pendingDecrypt.item);
 
-        const enc = new TextEncoder();
-        const keyMaterial = await crypto.subtle.importKey(
-          'raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']
-        );
-        const key = await crypto.subtle.deriveKey(
-          { name: 'PBKDF2', salt, iterations: 250000, hash: 'SHA-256' },
-          keyMaterial,
-          { name: 'AES-GCM', length: 256 },
-          false,
-          ['decrypt']
-        );
+          // Check for OOSV1 binary magic header ("OOSV")
+          if (bytes[0] === 0x4F && bytes[1] === 0x4F && bytes[2] === 0x53 && bytes[3] === 0x56) {
+            const salt = bytes.slice(5, 21);
+            const iv = bytes.slice(21, 33);
+            const ciphertext = bytes.slice(33);
 
-        const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext);
-        const targetUrl = new TextDecoder().decode(decrypted);
-        window.location.href = targetUrl;
+            const key = await deriveAesKey(password, salt);
+            const plainBuf = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext);
+
+            const view = new DataView(plainBuf);
+            const headerLen = view.getUint32(0, false);
+            const headerJson = new TextDecoder().decode(new Uint8Array(plainBuf, 4, headerLen));
+            const metaList = JSON.parse(headerJson);
+            const dataBaseOffset = 4 + headerLen;
+
+            const records = metaList.map(meta => ({
+              path: meta.path,
+              mime: meta.mime,
+              modified: meta.modified,
+              rawBytes: new Uint8Array(plainBuf, dataBaseOffset + meta.offset, meta.size)
+            }));
+
+            mountVirtualFiles(vaultRoot, pendingDecrypt.item.modified, records);
+          } else {
+            // Backward compatibility for legacy hex-encoded JSON vaults
+            const hex = new TextDecoder().decode(bytes).replace(/\s+/g, '');
+            const hexBytes = new Uint8Array(hex.match(/.{1,2}/g).map(b => parseInt(b, 16)));
+            const salt = hexBytes.slice(0, 16);
+            const iv = hexBytes.slice(16, 28);
+            const ciphertext = hexBytes.slice(28);
+
+            const key = await deriveAesKey(password, salt);
+            const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext);
+            const parsed = JSON.parse(new TextDecoder().decode(decrypted));
+
+            if (!parsed || !Array.isArray(parsed.files)) {
+              throw new Error('Corrupted vault structure');
+            }
+            mountVirtualFiles(vaultRoot, pendingDecrypt.item.modified, parsed.files);
+          }
+        } else {
+          // Single locked link (.locked.txt)
+          const hex = (await res.text()).replace(/\s+/g, '');
+          const bytes = new Uint8Array(hex.match(/.{1,2}/g).map(b => parseInt(b, 16)));
+          const salt = bytes.slice(0, 16);
+          const iv = bytes.slice(16, 28);
+          const ciphertext = bytes.slice(28);
+
+          const key = await deriveAesKey(password, salt);
+          const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext);
+          window.location.href = new TextDecoder().decode(decrypted).trim();
+        }
       } catch (e) {
         errEl.textContent = 'Access denied: Invalid passphrase.';
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Decrypt & Open';
       }
     }
 

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>OOS — Local Link Encryptor</title>
+  <title>OOS — Local Encryptor & Vault Builder</title>
   <style>
     :root {
       color-scheme: dark;
@@ -20,7 +20,6 @@
       flex-direction: column;
     }
 
-    /* Top Header */
     .navbar {
       width: 100%;
       padding: 12px 24px 11px;
@@ -54,15 +53,35 @@
       border-radius: 3px;
     }
 
-    /* Main Workspace */
     .container {
       width: 100%;
-      max-width: 760px;
-      margin: 24px auto;
+      max-width: 820px;
+      margin: 22px auto;
       padding: 0 18px 40px;
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 18px;
+    }
+
+    .mode-tabs {
+      display: flex;
+      gap: 8px;
+    }
+    .mode-tab {
+      background: #181b20;
+      border: 1px solid #2d333b;
+      color: #8b949e;
+      padding: 8px 14px;
+      border-radius: 4px;
+      font-family: "Courier New", Courier, monospace;
+      font-weight: 700;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .mode-tab.active {
+      background: #21262d;
+      border-color: #58a6ff;
+      color: #e6edf3;
     }
 
     .panel {
@@ -96,11 +115,22 @@
       gap: 6px;
     }
     .field label {
-      font-size: 12px;
-      font-weight: 600;
+      font-size: 11px;
+      font-weight: 700;
       color: #8b949e;
       text-transform: uppercase;
       letter-spacing: 0.5px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .size-warn {
+      color: #e3b341;
+      font-family: "Courier New", Courier, monospace;
+    }
+    .size-danger {
+      color: #f85149;
+      font-family: "Courier New", Courier, monospace;
     }
     .input-row {
       display: flex;
@@ -123,12 +153,15 @@
       border-color: #58a6ff;
     }
     textarea {
-      min-height: 96px;
+      min-height: 110px;
       resize: vertical;
       font-family: "Courier New", Courier, monospace;
       font-size: 12px;
-      word-break: break-all;
       line-height: 1.45;
+    }
+    .hex-box {
+      word-break: break-all;
+      min-height: 82px;
     }
 
     .suffix-hint {
@@ -144,7 +177,6 @@
       white-space: nowrap;
     }
 
-    /* Buttons */
     .btn-row {
       display: flex;
       gap: 8px;
@@ -162,7 +194,7 @@
       cursor: pointer;
       white-space: nowrap;
     }
-    .btn:hover {
+    .btn:hover:not(:disabled) {
       background: #30363d;
       border-color: #484f58;
     }
@@ -175,9 +207,132 @@
       border-color: #388bfd;
       color: #ffffff;
     }
-    .btn-primary:hover {
+    .btn-primary:hover:not(:disabled) {
       background: #388bfd;
       border-color: #58a6ff;
+    }
+    .btn-danger {
+      background: #2a1618;
+      border-color: #6e2b30;
+      color: #f85149;
+      padding: 4px 8px;
+      font-size: 11px;
+    }
+    .btn-danger:hover {
+      background: #3d1d20;
+    }
+
+    /* Vault File List */
+    .vault-items {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .vault-item-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 7px 10px;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 3px;
+      font-family: "Courier New", Courier, monospace;
+      font-size: 12px;
+      gap: 10px;
+    }
+    .vault-item-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .vault-subbox {
+      padding: 12px;
+      background: #14181e;
+      border: 1px solid #2d333b;
+      border-radius: 4px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    /* Vault Binary Receipt Box */
+    .vault-receipt {
+      display: none;
+      padding: 12px 14px;
+      background: #0d1117;
+      border: 1px solid #2ea043;
+      border-radius: 4px;
+      font-family: "Courier New", Courier, monospace;
+      font-size: 12px;
+      color: #c9d1d9;
+      line-height: 1.6;
+    }
+    .vault-receipt.visible {
+      display: block;
+    }
+
+    /* Progress Bar Component */
+    .progress-wrap {
+      display: none;
+      flex-direction: column;
+      gap: 6px;
+      padding: 10px 12px;
+      background: #0d1117;
+      border: 1px solid #2d333b;
+      border-radius: 4px;
+    }
+    .progress-wrap.visible {
+      display: flex;
+    }
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: "Courier New", Courier, monospace;
+      font-size: 12px;
+      color: #c9d1d9;
+    }
+    .progress-pct {
+      font-weight: 700;
+      color: #58a6ff;
+    }
+    .progress-wrap.done .progress-pct {
+      color: #3fb950;
+    }
+    .progress-wrap.error .progress-pct {
+      color: #f85149;
+    }
+    .progress-track {
+      width: 100%;
+      height: 8px;
+      background: #181b20;
+      border: 1px solid #30363d;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #1f6feb, #58a6ff);
+      border-radius: 999px;
+      transition: width 0.14s ease-out, background-color 0.2s ease;
+    }
+    .progress-wrap.pulsing .progress-fill {
+      background: linear-gradient(90deg, #1f6feb 0%, #d91eff 50%, #58a6ff 100%);
+      background-size: 200% 100%;
+      animation: pulseSlide 1.1s linear infinite;
+    }
+    .progress-wrap.done .progress-fill {
+      background: #3fb950;
+      animation: none;
+    }
+    .progress-wrap.error .progress-fill {
+      background: #f85149;
+      animation: none;
+    }
+    @keyframes pulseSlide {
+      0% { background-position: 200% 0; }
+      100% { background-position: 0% 0; }
     }
 
     .status {
@@ -187,11 +342,8 @@
     }
     .status.ok { color: #3fb950; }
     .status.err { color: #f85149; }
-
-    input[type="file"] {
-      font-size: 12px;
-      color: #8b949e;
-    }
+    .mode-section { display: none; }
+    .mode-section.active { display: block; }
   </style>
 </head>
 <body>
@@ -211,87 +363,214 @@
         <path d="M60 52.5 A8.5 8.5 0 0 0 60 69.5 C57.5 64 57.5 58 60 52.5 Z" fill="#e62eff"/>
         <path d="M60 52.5 A8.5 8.5 0 0 1 60 69.5 C57.5 64 57.5 58 60 52.5 Z" fill="#fde047"/>
       </svg>
-      <span>OOS // Local Link Encryptor</span>
+      <span>OOS // Local Vault & Link Encryptor</span>
     </div>
     <span class="offline-badge">LOCAL TOOL — DO NOT UPLOAD</span>
   </header>
 
   <main class="container">
-    <!-- ENCRYPT PANEL -->
-    <section class="panel">
-      <div class="panel-header">
-        <span>1. ENCRYPT DESTINATION URL</span>
-        <span style="font-size:11px; color:#8b949e;">AES-256-GCM + PBKDF2 (250k)</span>
-      </div>
-      <div class="panel-body">
-        <div class="field">
-          <label for="fileNameInput">Display Name in Explorer</label>
-          <div class="input-row">
-            <input type="text" id="fileNameInput" placeholder="e.g. scp-096-log">
-            <span class="suffix-hint">.locked.txt</span>
+    <div class="mode-tabs">
+      <button class="mode-tab active" onclick="switchMode('vault', this)">📁 Locked Folder (.vault.txt)</button>
+      <button class="mode-tab" onclick="switchMode('link', this)">🔗 Single Locked Link (.locked.txt)</button>
+    </div>
+
+    <!-- MODE 1: LOCKED FOLDER BUILDER -->
+    <section id="mode-vault" class="mode-section active">
+      <div class="panel">
+        <div class="panel-header">
+          <span>BUILD ENCRYPTED CLASSIFIED FOLDER</span>
+          <span style="font-size:11px; color:#8b949e;">OOSV1 BINARY • AES-256-GCM</span>
+        </div>
+        <div class="panel-body">
+          <div class="field">
+            <label>Folder Name in Explorer</label>
+            <div class="input-row">
+              <input type="text" id="vaultNameInput" placeholder="e.g. Level-4-Classified">
+              <span class="suffix-hint">.vault.txt</span>
+            </div>
           </div>
-        </div>
 
-        <div class="field">
-          <label for="urlInput">Target URL (Google Drive or Hidden Page)</label>
-          <input type="url" id="urlInput" placeholder="https://drive.google.com/file/d/...">
-        </div>
+          <div class="vault-subbox">
+            <div class="field">
+              <label>Import Local Files (.html, .txt, Images, Audio .mp3/.wav, Video .mp4/.webm, .pdf)</label>
+              <input type="file" id="vaultUploadInput" multiple onchange="importLocalFiles(this)">
+            </div>
 
-        <div class="field">
-          <label for="passInput">Clearance Passphrase</label>
-          <div class="input-row">
-            <input type="password" id="passInput" placeholder="Enter strong passphrase...">
-            <button class="btn" type="button" onclick="togglePass('passInput', this)">Show</button>
-            <button class="btn" type="button" onclick="generatePassphrase()">Generate</button>
+            <div class="field">
+              <label>Or Add Manual Entry Path (use "/" for subfolders)</label>
+              <input type="text" id="vFilePath" placeholder="e.g. scp-096.html or recordings/log-01.url">
+            </div>
+            <div class="field">
+              <label>Manual Content (HTML, text, or external URL for .url files)</label>
+              <textarea id="vFileContent" placeholder="Paste HTML/text content, or URL..."></textarea>
+            </div>
+            <div class="btn-row">
+              <button class="btn" type="button" onclick="addManualVaultFile()">+ Add Entry to Folder</button>
+            </div>
           </div>
-        </div>
 
-        <div class="btn-row">
-          <button class="btn btn-primary" type="button" onclick="encryptLink()">Encrypt Link</button>
-          <button class="btn" id="copyBtn" type="button" onclick="copyHex()" disabled>Copy Hex</button>
-          <button class="btn" id="downloadBtn" type="button" onclick="downloadLockedFile()" disabled>Download .locked.txt</button>
-        </div>
+          <div class="field">
+            <label>
+              <span>Files Queued Inside Folder (<span id="vaultCount">0</span>)</span>
+              <span id="vaultTotalSize">0 B</span>
+            </label>
+            <div id="vaultItemsList" class="vault-items">
+              <div style="color:#8b949e; font-size:12px;">No files added yet.</div>
+            </div>
+          </div>
 
-        <div class="field">
-          <label for="hexOutput">Encrypted Hex Payload</label>
-          <textarea id="hexOutput" readonly placeholder="Encrypted hex bytes will appear here..."></textarea>
-        </div>
+          <div class="field">
+            <label>Folder Clearance Passphrase</label>
+            <div class="input-row">
+              <input type="password" id="vaultPassInput" placeholder="Enter strong passphrase...">
+              <button class="btn" type="button" onclick="togglePass('vaultPassInput', this)">Show</button>
+              <button class="btn" type="button" onclick="generatePassphrase('vaultPassInput')">Generate</button>
+            </div>
+          </div>
 
-        <div id="encryptStatus" class="status"></div>
+          <div class="btn-row">
+            <button class="btn btn-primary" id="encryptVaultBtn" type="button" onclick="encryptVault()">Encrypt Folder</button>
+            <button class="btn" id="downloadVaultBtn" type="button" onclick="downloadVault()" disabled>Download .vault.txt</button>
+          </div>
+
+          <!-- Vault Encryption Progress Bar -->
+          <div id="vaultProgress" class="progress-wrap">
+            <div class="progress-header">
+              <span id="vaultProgressLabel">Initializing...</span>
+              <span id="vaultProgressPct" class="progress-pct">0%</span>
+            </div>
+            <div class="progress-track">
+              <div id="vaultProgressFill" class="progress-fill"></div>
+            </div>
+          </div>
+
+          <!-- Binary Output Receipt (Replaces memory-heavy textarea) -->
+          <div id="vaultReceipt" class="vault-receipt"></div>
+          <div id="vaultStatus" class="status"></div>
+        </div>
       </div>
     </section>
 
-    <!-- VERIFY / TEST DECRYPT PANEL -->
-    <section class="panel">
-      <div class="panel-header">
-        <span>2. VERIFY / TEST DECRYPT</span>
-      </div>
-      <div class="panel-body">
-        <div class="field">
-          <label>Load an existing .locked.txt file or paste hex below</label>
-          <input type="file" id="verifyFileInput" accept=".txt" onchange="loadVerifyFile(this)">
+    <!-- MODE 2: SINGLE LINK ENCRYPTOR -->
+    <section id="mode-link" class="mode-section">
+      <div class="panel">
+        <div class="panel-header">
+          <span>ENCRYPT SINGLE DESTINATION URL</span>
+          <span style="font-size:11px; color:#8b949e;">AES-256-GCM + PBKDF2 (250k)</span>
         </div>
-
-        <div class="field">
-          <textarea id="verifyHexInput" placeholder="Paste hex string to test..."></textarea>
-        </div>
-
-        <div class="field">
-          <label for="verifyPassInput">Passphrase to Test</label>
-          <div class="input-row">
-            <input type="password" id="verifyPassInput" placeholder="Enter passphrase..." onkeydown="if(event.key==='Enter') testDecrypt()">
-            <button class="btn" type="button" onclick="togglePass('verifyPassInput', this)">Show</button>
-            <button class="btn btn-primary" type="button" onclick="testDecrypt()">Test Decrypt</button>
+        <div class="panel-body">
+          <div class="field">
+            <label>Display Name in Explorer</label>
+            <div class="input-row">
+              <input type="text" id="fileNameInput" placeholder="e.g. external-drive-archive">
+              <span class="suffix-hint">.locked.txt</span>
+            </div>
           </div>
-        </div>
 
-        <div id="verifyStatus" class="status"></div>
+          <div class="field">
+            <label>Target URL</label>
+            <input type="url" id="urlInput" placeholder="https://drive.google.com/file/d/...">
+          </div>
+
+          <div class="field">
+            <label>Clearance Passphrase</label>
+            <div class="input-row">
+              <input type="password" id="passInput" placeholder="Enter strong passphrase...">
+              <button class="btn" type="button" onclick="togglePass('passInput', this)">Show</button>
+              <button class="btn" type="button" onclick="generatePassphrase('passInput')">Generate</button>
+            </div>
+          </div>
+
+          <div class="btn-row">
+            <button class="btn btn-primary" id="encryptLinkBtn" type="button" onclick="encryptSingleLink()">Encrypt Link</button>
+            <button class="btn" id="downloadLinkBtn" type="button" onclick="downloadLinkFile()" disabled>Download .locked.txt</button>
+          </div>
+
+          <!-- Link Encryption Progress Bar -->
+          <div id="linkProgress" class="progress-wrap">
+            <div class="progress-header">
+              <span id="linkProgressLabel">Initializing...</span>
+              <span id="linkProgressPct" class="progress-pct">0%</span>
+            </div>
+            <div class="progress-track">
+              <div id="linkProgressFill" class="progress-fill"></div>
+            </div>
+          </div>
+
+          <textarea id="hexOutput" class="hex-box" readonly placeholder="Encrypted hex bytes will appear here..."></textarea>
+          <div id="linkStatus" class="status"></div>
+        </div>
       </div>
     </section>
   </main>
 
   <script>
     const ITERATIONS = 250000;
+    const vaultFiles = [];
+    let encryptedVaultBlob = null;
+
+    const MIME_MAP = {
+      txt: 'text/plain;charset=utf-8',
+      md: 'text/markdown;charset=utf-8',
+      log: 'text/plain;charset=utf-8',
+      json: 'application/json;charset=utf-8',
+      html: 'text/html;charset=utf-8',
+      htm: 'text/html;charset=utf-8',
+      pdf: 'application/pdf',
+      png: 'image/png',
+      jpg: 'image/jpeg',
+      jpeg: 'image/jpeg',
+      gif: 'image/gif',
+      webp: 'image/webp',
+      svg: 'image/svg+xml',
+      mp4: 'video/mp4',
+      webm: 'video/webm',
+      ogv: 'video/ogg',
+      mov: 'video/quicktime',
+      m4v: 'video/mp4',
+      mp3: 'audio/mpeg',
+      wav: 'audio/wav',
+      ogg: 'audio/ogg',
+      m4a: 'audio/mp4',
+      aac: 'audio/aac',
+      flac: 'audio/flac',
+      opus: 'audio/opus',
+      url: 'text/plain;charset=utf-8',
+      link: 'text/plain;charset=utf-8'
+    };
+
+    const nextTick = () => new Promise(resolve => setTimeout(resolve, 16));
+
+    function guessMimeType(filename) {
+      const ext = filename.includes('.') ? filename.split('.').pop().toLowerCase() : '';
+      return MIME_MAP[ext] || 'application/octet-stream';
+    }
+
+    function setProgress(prefix, pct, label, state = 'active') {
+      const wrap = document.getElementById(prefix + 'Progress');
+      const labelEl = document.getElementById(prefix + 'ProgressLabel');
+      const pctEl = document.getElementById(prefix + 'ProgressPct');
+      const fillEl = document.getElementById(prefix + 'ProgressFill');
+
+      const clamped = Math.max(0, Math.min(100, Math.round(pct)));
+      wrap.classList.add('visible');
+      wrap.classList.remove('pulsing', 'done', 'error');
+
+      if (state === 'pulsing') wrap.classList.add('pulsing');
+      else if (state === 'done') wrap.classList.add('done');
+      else if (state === 'error') wrap.classList.add('error');
+
+      labelEl.textContent = label;
+      pctEl.textContent = clamped + '%';
+      fillEl.style.width = clamped + '%';
+    }
+
+    function switchMode(mode, btn) {
+      document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.mode-section').forEach(s => s.classList.remove('active'));
+      document.getElementById('mode-' + mode).classList.add('active');
+    }
 
     function togglePass(inputId, btn) {
       const el = document.getElementById(inputId);
@@ -300,7 +579,7 @@
       btn.textContent = isHidden ? 'Hide' : 'Show';
     }
 
-    function generatePassphrase() {
+    function generatePassphrase(inputId) {
       const words = [
         'vector', 'cipher', 'outcast', 'nebula', 'quantum', 'zenith', 'obsidian',
         'specter', 'eclipse', 'phantom', 'monolith', 'vortex', 'kestrel', 'signal',
@@ -312,13 +591,103 @@
         const w = words[n % words.length];
         return i === 3 ? `${w}-${(n % 90) + 10}` : w;
       });
-      const passEl = document.getElementById('passInput');
+      const passEl = document.getElementById(inputId);
       passEl.value = picked.join('-');
       passEl.type = 'text';
       passEl.nextElementSibling.textContent = 'Hide';
     }
 
-    async function deriveAesKey(password, salt, usage) {
+    function todayISO() {
+      return new Date().toISOString().slice(0, 10);
+    }
+
+    function formatSize(bytes) {
+      if (bytes < 1024) return `${bytes} B`;
+      if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+      return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+    }
+
+    function renderVaultList() {
+      const listEl = document.getElementById('vaultItemsList');
+      const totalEl = document.getElementById('vaultTotalSize');
+      document.getElementById('vaultCount').textContent = vaultFiles.length;
+
+      const totalBytes = vaultFiles.reduce((sum, f) => sum + f.size, 0);
+      totalEl.textContent = formatSize(totalBytes);
+      totalEl.className = totalBytes > 95 * 1024 * 1024
+        ? 'size-danger'
+        : totalBytes > 75 * 1024 * 1024
+          ? 'size-warn'
+          : '';
+      if (totalBytes > 95 * 1024 * 1024) {
+        totalEl.textContent += ' (Exceeds GitHub 100 MB limit!)';
+      }
+
+      if (vaultFiles.length === 0) {
+        listEl.innerHTML = `<div style="color:#8b949e; font-size:12px;">No files added yet.</div>`;
+        return;
+      }
+
+      listEl.innerHTML = vaultFiles.map((f, idx) => `
+        <div class="vault-item-row">
+          <span class="vault-item-name">📄 ${f.path} <span style="color:#8b949e;">(${formatSize(f.size)})</span></span>
+          <button class="btn btn-danger" type="button" onclick="removeVaultFile(${idx})">Remove</button>
+        </div>
+      `).join('');
+    }
+
+    function removeVaultFile(idx) {
+      vaultFiles.splice(idx, 1);
+      renderVaultList();
+    }
+
+    function addManualVaultFile() {
+      const path = document.getElementById('vFilePath').value.trim().replace(/^\/+/, '');
+      const content = document.getElementById('vFileContent').value;
+      if (!path || !content) return alert('Enter both a file path (with extension like .html, .url, or .txt) and content.');
+
+      const encodedBytes = new TextEncoder().encode(content);
+      const entry = {
+        path,
+        mime: guessMimeType(path),
+        size: encodedBytes.length,
+        modified: todayISO(),
+        rawBytes: encodedBytes,
+        fileObj: null
+      };
+
+      const existingIdx = vaultFiles.findIndex(f => f.path === path);
+      if (existingIdx >= 0) vaultFiles[existingIdx] = entry;
+      else vaultFiles.push(entry);
+
+      document.getElementById('vFilePath').value = '';
+      document.getElementById('vFileContent').value = '';
+      renderVaultList();
+    }
+
+    function importLocalFiles(input) {
+      const files = Array.from(input.files || []);
+      if (files.length === 0) return;
+
+      files.forEach(file => {
+        const entry = {
+          path: file.name,
+          mime: file.type || guessMimeType(file.name),
+          size: file.size,
+          modified: todayISO(),
+          rawBytes: null,
+          fileObj: file // Kept on disk until Encrypt is clicked (zero RAM overhead)
+        };
+        const existingIdx = vaultFiles.findIndex(f => f.path === file.name);
+        if (existingIdx >= 0) vaultFiles[existingIdx] = entry;
+        else vaultFiles.push(entry);
+      });
+
+      renderVaultList();
+      input.value = '';
+    }
+
+    async function deriveAesKey(password, salt) {
       const enc = new TextEncoder();
       const keyMaterial = await crypto.subtle.importKey(
         'raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']
@@ -328,20 +697,138 @@
         keyMaterial,
         { name: 'AES-GCM', length: 256 },
         false,
-        [usage]
+        ['encrypt']
       );
     }
 
-    async function encryptLink() {
-      const statusEl = document.getElementById('encryptStatus');
+    async function encryptVault() {
+      const statusEl = document.getElementById('vaultStatus');
+      const receiptEl = document.getElementById('vaultReceipt');
+      const btn = document.getElementById('encryptVaultBtn');
+      const dlBtn = document.getElementById('downloadVaultBtn');
+
       statusEl.className = 'status';
       statusEl.textContent = '';
+      receiptEl.classList.remove('visible');
+      encryptedVaultBlob = null;
+      dlBtn.disabled = true;
 
-      if (!window.crypto || !window.crypto.subtle) {
+      const password = document.getElementById('vaultPassInput').value;
+      if (vaultFiles.length === 0) {
         statusEl.className = 'status err';
-        statusEl.textContent = 'Web Crypto API unavailable. Open via localhost (e.g., VS Code Live Server).';
+        statusEl.textContent = 'Add at least one file to the folder first.';
         return;
       }
+      if (!password) {
+        statusEl.className = 'status err';
+        statusEl.textContent = 'Enter a clearance passphrase.';
+        return;
+      }
+
+      btn.disabled = true;
+      try {
+        setProgress('vault', 5, 'Building binary directory table...', 'active');
+        await nextTick();
+
+        let currentOffset = 0;
+        const metaList = vaultFiles.map(item => {
+          const meta = {
+            path: item.path,
+            mime: item.mime,
+            modified: item.modified,
+            offset: currentOffset,
+            size: item.size
+          };
+          currentOffset += item.size;
+          return meta;
+        });
+
+        const headerBytes = new TextEncoder().encode(JSON.stringify(metaList));
+        const totalPayloadBytes = 4 + headerBytes.length + currentOffset;
+
+        // Single contiguous buffer for plaintext archive
+        let payloadBuffer = new Uint8Array(totalPayloadBytes);
+        new DataView(payloadBuffer.buffer).setUint32(0, headerBytes.length, false);
+        payloadBuffer.set(headerBytes, 4);
+
+        let writePos = 4 + headerBytes.length;
+        for (let i = 0; i < vaultFiles.length; i++) {
+          const item = vaultFiles[i];
+          const pct = 10 + Math.round(((i + 1) / vaultFiles.length) * 45);
+          setProgress('vault', pct, `Packing (${i + 1}/${vaultFiles.length}): ${item.path}...`, 'active');
+          await nextTick();
+
+          if (item.fileObj) {
+            const buf = await item.fileObj.arrayBuffer();
+            payloadBuffer.set(new Uint8Array(buf), writePos);
+            writePos += buf.byteLength;
+          } else if (item.rawBytes) {
+            payloadBuffer.set(item.rawBytes, writePos);
+            writePos += item.rawBytes.length;
+          }
+        }
+
+        const salt = crypto.getRandomValues(new Uint8Array(16));
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+
+        setProgress('vault', 62, 'Deriving AES-256 key (250,000 PBKDF2 rounds)...', 'pulsing');
+        await nextTick();
+        const key = await deriveAesKey(password, salt);
+
+        setProgress('vault', 80, `Encrypting ${formatSize(totalPayloadBytes)} with AES-256-GCM...`, 'pulsing');
+        await nextTick();
+        const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, payloadBuffer);
+
+        // Release plaintext buffer immediately for garbage collection
+        payloadBuffer = null;
+
+        setProgress('vault', 95, 'Finalizing OOSV1 binary container...', 'active');
+        await nextTick();
+
+        // Header: "OOSV" (4 bytes) + version 0x01 (1 byte) + salt (16 bytes) + iv (12 bytes)
+        const magicHeader = new Uint8Array([0x4F, 0x4F, 0x53, 0x56, 0x01]);
+        encryptedVaultBlob = new Blob(
+          [magicHeader, salt, iv, ciphertext],
+          { type: 'application/octet-stream' }
+        );
+
+        setProgress('vault', 100, 'Vault encrypted and ready to download', 'done');
+        dlBtn.disabled = false;
+
+        receiptEl.innerHTML = `
+          <strong style="color:#3fb950;">✓ OOSV1 ENCRYPTED CONTAINER READY</strong><br>
+          • Packed Entries: ${vaultFiles.length} file(s)<br>
+          • Final Archive Size: ${formatSize(encryptedVaultBlob.size)}<br>
+          • Format: Raw Binary AES-256-GCM (Zero-Copy Stream)
+        `;
+        receiptEl.classList.add('visible');
+        statusEl.className = 'status ok';
+        statusEl.textContent = 'Click "Download .vault.txt" and push to your repository.';
+      } catch (err) {
+        setProgress('vault', 100, 'Encryption failed', 'error');
+        statusEl.className = 'status err';
+        statusEl.textContent = 'Error: ' + err.message;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    function downloadVault() {
+      if (!encryptedVaultBlob) return;
+      const rawName = document.getElementById('vaultNameInput').value.trim() || 'Classified-Folder';
+      const cleanBase = rawName.replace(/\.vault\.txt$/i, '').replace(/[^a-zA-Z0-9._-]/g, '_');
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(encryptedVaultBlob);
+      link.download = `${cleanBase}.vault.txt`;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(link.href), 5000);
+    }
+
+    async function encryptSingleLink() {
+      const statusEl = document.getElementById('linkStatus');
+      const btn = document.getElementById('encryptLinkBtn');
+      statusEl.className = 'status';
+      statusEl.textContent = '';
 
       const url = document.getElementById('urlInput').value.trim();
       const password = document.getElementById('passInput').value;
@@ -352,15 +839,20 @@
         return;
       }
 
+      btn.disabled = true;
       try {
-        statusEl.textContent = 'Deriving key (250,000 PBKDF2 rounds)...';
+        setProgress('link', 25, 'Deriving AES-256 key...', 'pulsing');
+        await nextTick();
+
         const salt = crypto.getRandomValues(new Uint8Array(16));
         const iv = crypto.getRandomValues(new Uint8Array(12));
-        const key = await deriveAesKey(password, salt, 'encrypt');
+        const key = await deriveAesKey(password, salt);
 
-        const enc = new TextEncoder();
+        setProgress('link', 70, 'Encrypting destination URL...', 'active');
+        await nextTick();
+
         const ciphertext = new Uint8Array(
-          await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(url))
+          await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(url))
         );
 
         const combined = new Uint8Array(salt.length + iv.length + ciphertext.length);
@@ -368,97 +860,33 @@
         combined.set(iv, 16);
         combined.set(ciphertext, 28);
 
-        const hex = Array.from(combined)
-          .map(b => b.toString(16).padStart(2, '0'))
-          .join('');
-
+        const hex = Array.from(combined).map(b => b.toString(16).padStart(2, '0')).join('');
         document.getElementById('hexOutput').value = hex;
-        document.getElementById('copyBtn').disabled = false;
-        document.getElementById('downloadBtn').disabled = false;
+        document.getElementById('downloadLinkBtn').disabled = false;
 
+        setProgress('link', 100, 'Link encrypted', 'done');
         statusEl.className = 'status ok';
-        statusEl.textContent = `Encrypted (${combined.length} bytes -> ${hex.length} hex chars).`;
+        statusEl.textContent = `Encrypted (${hex.length} hex chars).`;
       } catch (err) {
+        setProgress('link', 100, 'Encryption failed', 'error');
         statusEl.className = 'status err';
-        statusEl.textContent = 'Encryption failed: ' + err.message;
+        statusEl.textContent = 'Error: ' + err.message;
+      } finally {
+        btn.disabled = false;
       }
     }
 
-    async function copyHex() {
+    function downloadLinkFile() {
       const hex = document.getElementById('hexOutput').value;
       if (!hex) return;
-      await navigator.clipboard.writeText(hex);
-      const statusEl = document.getElementById('encryptStatus');
-      statusEl.className = 'status ok';
-      statusEl.textContent = 'Hex copied to clipboard.';
-    }
-
-    function downloadLockedFile() {
-      const hex = document.getElementById('hexOutput').value;
-      if (!hex) return;
-
-      const rawName = document.getElementById('fileNameInput').value.trim() || 'secret-file';
+      const rawName = document.getElementById('fileNameInput').value.trim() || 'secret-link';
       const cleanBase = rawName.replace(/\.locked\.txt$/i, '').replace(/[^a-zA-Z0-9._-]/g, '_');
-      const finalName = `${cleanBase}.locked.txt`;
-
       const blob = new Blob([hex + '\n'], { type: 'text/plain;charset=utf-8' });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
-      link.download = finalName;
+      link.download = `${cleanBase}.locked.txt`;
       link.click();
-      URL.revokeObjectURL(link.href);
-
-      const statusEl = document.getElementById('encryptStatus');
-      statusEl.className = 'status ok';
-      statusEl.textContent = `Downloaded ${finalName} — move it into your repo folder and git push.`;
-    }
-
-    function loadVerifyFile(input) {
-      const file = input.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        document.getElementById('verifyHexInput').value = e.target.result.trim();
-      };
-      reader.readAsText(file);
-    }
-
-    async function testDecrypt() {
-      const statusEl = document.getElementById('verifyStatus');
-      statusEl.className = 'status';
-      statusEl.textContent = '';
-
-      const hex = document.getElementById('verifyHexInput').value.replace(/\s+/g, '');
-      const password = document.getElementById('verifyPassInput').value;
-
-      if (!hex || !password) {
-        statusEl.className = 'status err';
-        statusEl.textContent = 'Provide both the hex payload and passphrase to test.';
-        return;
-      }
-
-      if (hex.length <= 56 || hex.length % 2 !== 0 || !/^[0-9a-fA-F]+$/.test(hex)) {
-        statusEl.className = 'status err';
-        statusEl.textContent = 'Invalid hex format or truncated payload.';
-        return;
-      }
-
-      try {
-        const bytes = new Uint8Array(hex.match(/.{1,2}/g).map(b => parseInt(b, 16)));
-        const salt = bytes.slice(0, 16);
-        const iv = bytes.slice(16, 28);
-        const ciphertext = bytes.slice(28);
-
-        const key = await deriveAesKey(password, salt, 'decrypt');
-        const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext);
-        const url = new TextDecoder().decode(decrypted);
-
-        statusEl.className = 'status ok';
-        statusEl.textContent = `Valid! Decrypted URL: ${url}`;
-      } catch (err) {
-        statusEl.className = 'status err';
-        statusEl.textContent = 'Decryption failed: Wrong passphrase or tampered hex.';
-      }
+      setTimeout(() => URL.revokeObjectURL(link.href), 5000);
     }
   </script>
 </body>
