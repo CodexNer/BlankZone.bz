@@ -562,7 +562,6 @@
     const VIDEO_EXTS = new Set(['mp4', 'webm', 'ogv', 'mov', 'm4v']);
     const AUDIO_EXTS = new Set(['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac', 'opus']);
     const FRAME_EXTS = new Set(['html', 'htm', 'pdf']);
-    const LINK_EXTS  = new Set(['url', 'link']);
 
     const ICONS = {
       home: `<svg width="14" height="14" viewBox="0 0 16 16" fill="#58a6ff"><path d="M8 1.5L1 7.5h2v6h4v-4h2v4h4v-6h2L8 1.5z"/></svg>`,
@@ -587,9 +586,15 @@
     function isVideoLinkFile(item) {
       if (!item || item.type !== 'file') return false;
       const lower = item.name.toLowerCase();
-      if (lower.endsWith('.video.url') || lower.endsWith('.video.link') || lower.endsWith('.video.locked.txt')) return true;
-      if (lower.endsWith('.url') || lower.endsWith('.link')) {
-        const base = lower.replace(/\.(url|link)$/, '');
+      if (
+        lower.endsWith('.video.link.txt') ||
+        lower.endsWith('.video.link') ||
+        lower.endsWith('.video.url') ||
+        lower.endsWith('.video.download') ||
+        lower.endsWith('.video.locked.txt')
+      ) return true;
+      if (lower.endsWith('.link.txt') || lower.endsWith('.url') || lower.endsWith('.link')) {
+        const base = lower.replace(/(\.link\.txt|\.url|\.link)$/, '');
         return VIDEO_EXTS.has(getExtension(base));
       }
       if (lower.endsWith('.locked.txt')) {
@@ -602,9 +607,15 @@
     function isAudioLinkFile(item) {
       if (!item || item.type !== 'file') return false;
       const lower = item.name.toLowerCase();
-      if (lower.endsWith('.audio.url') || lower.endsWith('.audio.link') || lower.endsWith('.audio.locked.txt')) return true;
-      if (lower.endsWith('.url') || lower.endsWith('.link')) {
-        const base = lower.replace(/\.(url|link)$/, '');
+      if (
+        lower.endsWith('.audio.link.txt') ||
+        lower.endsWith('.audio.link') ||
+        lower.endsWith('.audio.url') ||
+        lower.endsWith('.audio.download') ||
+        lower.endsWith('.audio.locked.txt')
+      ) return true;
+      if (lower.endsWith('.link.txt') || lower.endsWith('.url') || lower.endsWith('.link')) {
+        const base = lower.replace(/(\.link\.txt|\.url|\.link)$/, '');
         return AUDIO_EXTS.has(getExtension(base));
       }
       if (lower.endsWith('.locked.txt')) {
@@ -612,6 +623,18 @@
         return AUDIO_EXTS.has(getExtension(base));
       }
       return false;
+    }
+
+    function isLinkFile(item) {
+      if (!item || item.type !== 'file') return false;
+      const lower = item.name.toLowerCase();
+      return (
+        lower.endsWith('.link.txt') ||
+        lower.endsWith('.url') ||
+        lower.endsWith('.link') ||
+        isVideoLinkFile(item) ||
+        isAudioLinkFile(item)
+      );
     }
 
     function getVaultVirtualPath(vaultItem) {
@@ -822,9 +845,12 @@
         return item.name
           .replace(/\.(video|audio)\.locked\.txt$/i, '')
           .replace(/\.locked\.txt$/i, '')
-          .replace(/\.[a-z0-9]+\.(url|link)$/i, '');
+          .replace(/\.[a-z0-9]+\.(link\.txt|url|link|download)$/i, '');
       }
       if (isLockedLinkFile(item)) return item.name.replace(/\.locked\.txt$/i, '');
+      if (item.name.toLowerCase().endsWith('.link.txt')) {
+        return item.name.replace(/\.link\.txt$/i, '');
+      }
       const lastDot = item.name.lastIndexOf('.');
       return lastDot > 0 ? item.name.substring(0, lastDot) : item.name;
     }
@@ -845,6 +871,7 @@
       if (isVideoLinkFile(item)) return 'VIDEO';
       if (isAudioLinkFile(item)) return 'AUDIO';
       if (isLockedLinkFile(item)) return 'Encrypted';
+      if (item.name.toLowerCase().endsWith('.link.txt')) return 'LINK';
       const ext = getExtension(item.name);
       return ext ? ext.toUpperCase() : 'File';
     }
@@ -1212,8 +1239,8 @@
     async function openFileViewer(item, pushHistory = true) {
       const ext = getExtension(item.name);
 
-      // Handle virtual .url / .link entries inside unlocked vaults by embedding inline
-      if (item.virtual && LINK_EXTS.has(ext)) {
+      // Handle virtual link entries inside unlocked vaults by embedding inline
+      if (item.virtual && isLinkFile(item)) {
         const rawText = item.rawBytes
           ? new TextDecoder().decode(item.rawBytes)
           : (item.content || '');
@@ -1245,8 +1272,8 @@
       const rawLinkEl = document.getElementById('viewerRawLink');
       rawLinkEl.textContent = 'Open Raw ↗';
 
-      // Public .url / .link file stored directly in the repository
-      if (!item.virtual && LINK_EXTS.has(ext)) {
+      // Public link file (.video.link.txt, .audio.link.txt, .url, .link, etc.)
+      if (!item.virtual && isLinkFile(item)) {
         viewerBody.innerHTML = `<div class="viewer-loading">Resolving linked resource...</div>`;
         try {
           const res = await fetch(item.path + '?t=' + Date.now());

@@ -428,7 +428,7 @@
     <div class="mode-tabs">
       <button class="mode-tab active" onclick="switchMode('vault', this)">📁 Locked Folder (.vault.txt)</button>
       <button class="mode-tab" onclick="switchMode('link', this)">🔗 Single Locked Link (.locked.txt)</button>
-      <button class="mode-tab" onclick="switchMode('public', this)">🌐 Public Drive Media (.url)</button>
+      <button class="mode-tab" onclick="switchMode('public', this)">🌐 Public Drive Media (.link.txt)</button>
     </div>
 
     <!-- MODE 1: LOCKED FOLDER BUILDER -->
@@ -461,7 +461,7 @@
                   <option value="audio">Audio</option>
                 </select>
                 <input type="text" id="vMediaPath" placeholder="e.g. recordings/cctv-log-01">
-                <span class="suffix-hint" id="mediaSuffixHint">.video.url</span>
+                <span class="suffix-hint" id="mediaSuffixHint">.video.link.txt</span>
               </div>
             </div>
             <div class="field">
@@ -481,8 +481,8 @@
                   <label>Media Type for Batch</label>
                   <div class="input-row">
                     <select id="vBulkMediaType">
-                      <option value="video">Video (.video.url)</option>
-                      <option value="audio">Audio (.audio.url)</option>
+                      <option value="video">Video (.video.link.txt)</option>
+                      <option value="audio">Audio (.audio.link.txt)</option>
                     </select>
                     <input type="file" accept=".txt,.csv" onchange="importDriveLinksFile(this)">
                   </div>
@@ -520,7 +520,7 @@
             <div class="subbox-title">✏️ Add Manual Text / HTML / General Link Entry</div>
             <div class="field">
               <label>Entry Path (use "/" for subfolders)</label>
-              <input type="text" id="vFilePath" placeholder="e.g. scp-096.html or docs/drive-folder.url">
+              <input type="text" id="vFilePath" placeholder="e.g. scp-096.html or docs/drive-folder.link.txt">
             </div>
             <div class="field">
               <label>Content (HTML, plain text, or Google Drive folder/doc URL)</label>
@@ -584,7 +584,7 @@
           <div class="field">
             <label>Display Name in Explorer</label>
             <div class="input-row">
-              <input type="text" id="fileNameInput" placeholder="e.g. secret-recording">
+              <input type="text" id="fileNameInput" placeholder="e.g. secret-recording.video">
               <span class="suffix-hint">.locked.txt</span>
             </div>
           </div>
@@ -592,7 +592,7 @@
           <div class="field">
             <label>Target Google Drive or External URL</label>
             <input type="url" id="urlInput" placeholder="https://drive.google.com/file/d/...">
-            <span class="hint-text">Google Drive video, audio, document, and folder links automatically embed inside the web viewer after decryption.</span>
+            <span class="hint-text">Tip: Add <code>.video</code> or <code>.audio</code> to the name (e.g. <code>log-01.video</code>) to render it with a Video/Audio icon and media player.</span>
           </div>
 
           <div class="field">
@@ -626,12 +626,12 @@
       </div>
     </section>
 
-    <!-- MODE 3: PUBLIC DRIVE MEDIA FILE (.video.url / .audio.url) -->
+    <!-- MODE 3: PUBLIC DRIVE MEDIA FILE (.video.link.txt / .audio.link.txt) -->
     <section id="mode-public" class="mode-section">
       <div class="panel">
         <div class="panel-header">
           <span>CREATE UNLOCKED DRIVE VIDEO / AUDIO FILE</span>
-          <span style="font-size:11px; color:#8b949e;">FOR PUBLIC DIRECTORIES</span>
+          <span style="font-size:11px; color:#8b949e;">SAFE .TXT EXTENSION • EMBEDS IN-PAGE</span>
         </div>
         <div class="panel-body">
           <div class="field">
@@ -641,15 +641,15 @@
                 <option value="video">Video</option>
                 <option value="audio">Audio</option>
               </select>
-              <input type="text" id="pubMediaName" placeholder="e.g. demo-gameplay">
-              <span class="suffix-hint" id="pubSuffixHint">.video.url</span>
+              <input type="text" id="pubMediaName" placeholder="e.g. Larpkai">
+              <span class="suffix-hint" id="pubSuffixHint">.video.link.txt</span>
             </div>
           </div>
 
           <div class="field">
             <label>Google Drive Share URL</label>
             <input type="url" id="pubMediaUrl" placeholder="https://drive.google.com/file/d/1AbCdEf.../view?usp=sharing">
-            <span class="hint-text">Place the downloaded <code>.video.url</code> or <code>.audio.url</code> file anywhere in your GitHub repo. It appears as a normal Video/Audio entry and embeds directly in-page.</span>
+            <span class="hint-text">Downloads as a clean <code>.link.txt</code> file (never blocked or renamed to <code>.download</code> by Chrome/Windows). Push it to any folder in your repo and it embeds in-page.</span>
           </div>
 
           <div class="btn-row">
@@ -701,12 +701,12 @@
 
     function updateMediaSuffixHint() {
       const mediaType = document.getElementById('vMediaType').value;
-      document.getElementById('mediaSuffixHint').textContent = `.${mediaType}.url`;
+      document.getElementById('mediaSuffixHint').textContent = `.${mediaType}.link.txt`;
     }
 
     function updatePublicSuffixHint() {
       const mediaType = document.getElementById('pubMediaType').value;
-      document.getElementById('pubSuffixHint').textContent = `.${mediaType}.url`;
+      document.getElementById('pubSuffixHint').textContent = `.${mediaType}.link.txt`;
     }
 
     function extractDriveId(rawUrl) {
@@ -716,7 +716,7 @@
         const fileMatch = parsed.pathname.match(/\/file\/(?:u\/\d+\/)?d\/([a-zA-Z0-9_-]+)/);
         if (fileMatch) return fileMatch[1];
         const queryId = parsed.searchParams.get('id');
-        if (queryId && (parsed.pathname === '/open' || parsed.pathname === '/uc')) return queryId;
+        if (queryId && /^\/(?:u\/\d+\/)?(?:open|uc)$/.test(parsed.pathname)) return queryId;
       } catch (_) {}
       return null;
     }
@@ -807,13 +807,13 @@
         const lower = f.path.toLowerCase();
         let icon = '📄';
         let badge = '';
-        if (lower.endsWith('.video.url')) {
+        if (lower.endsWith('.video.link.txt') || lower.endsWith('.video.url')) {
           icon = '🎬';
           badge = `<span class="media-tag">VIDEO LINK</span>`;
-        } else if (lower.endsWith('.audio.url')) {
+        } else if (lower.endsWith('.audio.link.txt') || lower.endsWith('.audio.url')) {
           icon = '🔊';
           badge = `<span class="media-tag">AUDIO LINK</span>`;
-        } else if (lower.endsWith('.url') || lower.endsWith('.link')) {
+        } else if (lower.endsWith('.link.txt') || lower.endsWith('.url') || lower.endsWith('.link')) {
           icon = '🔗';
           badge = `<span class="media-tag">LINK</span>`;
         }
@@ -843,10 +843,10 @@
       const cleanBasePath = rawPath
         .trim()
         .replace(/^\/+/, '')
-        .replace(/\.(video|audio)?\.(url|link)$/i, '')
+        .replace(/\.(video|audio)?\.(link\.txt|url|link|download)$/i, '')
         .replace(/\.(mp4|webm|ogv|mov|m4v|mp3|wav|ogg|m4a|aac|flac|opus)$/i, '');
 
-      const finalPath = `${cleanBasePath}.${mediaType}.url`;
+      const finalPath = `${cleanBasePath}.${mediaType}.link.txt`;
       const encodedBytes = new TextEncoder().encode(rawUrl.trim());
 
       return {
@@ -944,7 +944,7 @@
     function addManualVaultFile() {
       const path = document.getElementById('vFilePath').value.trim().replace(/^\/+/, '');
       const content = document.getElementById('vFileContent').value;
-      if (!path || !content) return alert('Enter both a file path (with extension like .html, .url, or .txt) and content.');
+      if (!path || !content) return alert('Enter both a file path (with extension like .html, .link.txt, or .txt) and content.');
 
       const encodedBytes = new TextEncoder().encode(content);
       upsertVaultEntry({
@@ -1219,11 +1219,11 @@
       }
 
       const cleanBase = rawName
-        .replace(/\.(video|audio)?\.(url|link)$/i, '')
+        .replace(/\.(video|audio)?\.(link\.txt|url|link|download)$/i, '')
         .replace(/\.(mp4|webm|ogv|mov|m4v|mp3|wav|ogg|m4a|aac|flac|opus)$/i, '')
         .replace(/[^a-zA-Z0-9._-]/g, '_');
 
-      const fileName = `${cleanBase}.${mediaType}.url`;
+      const fileName = `${cleanBase}.${mediaType}.link.txt`;
       const blob = new Blob([rawUrl + '\n'], { type: 'text/plain;charset=utf-8' });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
