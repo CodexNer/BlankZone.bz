@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Outcasts Organization Software — Directory</title>
+  <title>OOS - Directory</title>
   <style>
     :root {
       color-scheme: dark;
@@ -100,6 +100,7 @@
       align-items: center;
       gap: 6px;
       font-size: 13px;
+      flex-wrap: wrap;
     }
     .breadcrumb a {
       color: #58a6ff;
@@ -117,12 +118,20 @@
       color: #6e7681;
     }
 
-    /* Column Header Bar Under Breadcrumb */
-    .column-header {
-      display: flex;
+    /* Aligned 3-Column Grid (Name | Type | Date Modified) */
+    .column-header,
+    .file-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 110px 125px;
       align-items: center;
-      justify-content: space-between;
-      padding: 6px 14px;
+      gap: 12px;
+      padding-left: 14px;
+      padding-right: 14px;
+    }
+
+    .column-header {
+      padding-top: 6px;
+      padding-bottom: 6px;
       background: #1b1f25;
       border-bottom: 1px solid #2d333b;
       color: #8b949e;
@@ -132,6 +141,9 @@
       letter-spacing: 0.6px;
       user-select: none;
     }
+    .col-right {
+      text-align: right;
+    }
 
     #fileList {
       flex: 1;
@@ -140,10 +152,8 @@
 
     /* Full-Bar Interactive Rows */
     .file-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 9px 14px;
+      padding-top: 9px;
+      padding-bottom: 9px;
       border-bottom: 1px solid #262c34;
       background: #181b20;
       cursor: pointer;
@@ -161,6 +171,7 @@
       color: #79c0ff;
     }
     .file-row.empty-row {
+      display: flex;
       cursor: default;
     }
     .file-row.empty-row:hover {
@@ -173,6 +184,9 @@
       gap: 10px;
       min-width: 0;
     }
+    .row-left svg {
+      flex-shrink: 0;
+    }
     .item-link {
       color: #58a6ff;
       text-decoration: none;
@@ -181,22 +195,27 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    .row-meta {
+    .row-type {
       color: #8b949e;
       font-family: "Courier New", Courier, monospace;
       font-size: 12px;
       white-space: nowrap;
-      margin-left: 16px;
-      text-align: right;
     }
-    .badge-locked {
+    .type-locked {
+      display: inline-block;
       background: #272118;
       border: 1px solid #5c431f;
       color: #e3b341;
       font-size: 11px;
       padding: 1px 6px;
       border-radius: 3px;
-      margin-left: 8px;
+    }
+    .row-meta {
+      color: #8b949e;
+      font-family: "Courier New", Courier, monospace;
+      font-size: 12px;
+      white-space: nowrap;
+      text-align: right;
     }
 
     /* Decrypt Drawer */
@@ -247,6 +266,20 @@
       font-size: 12px;
       margin-top: 8px;
     }
+
+    /* Mobile Adjustments */
+    @media (max-width: 560px) {
+      .navbar { padding: 10px 14px; }
+      .brand { font-size: 16px; gap: 9px; }
+      .container { padding: 10px 14px 16px; }
+      .column-header,
+      .file-row {
+        grid-template-columns: minmax(0, 1fr) 82px 96px;
+        gap: 8px;
+        padding-left: 10px;
+        padding-right: 10px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -254,13 +287,13 @@
   <header class="navbar">
     <a class="brand" href="#" onclick="navigateTo(''); return false;">
       <!-- Outcasts Shield Crest SVG -->
-      <svg class="brand-logo" width="32" height="36" viewBox="0 0 120 132" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <svg class="brand-logo" width="36" height="36" viewBox="0 0 120 132" fill="none" xmlns="http://www.w3.org/2000/svg">
         <!-- Dark Shield Base -->
         <polygon points="60,6 95,24 95,88 60,126 25,88 25,24" fill="#090714"/>
         <!-- Left Magenta Shield Half -->
-        <polygon points="60,6 25,24 25,88 60,126 60,113 34,83 34,30 60,17" fill="#d91eff"/>
+        <polygon points="60,6 18,24 18,88 60,126 60,113 23,83 23,30 60,17" fill="#d91eff"/>
         <!-- Right Indigo-Violet Shield Half -->
-        <polygon points="60,6 95,24 95,88 60,126 60,113 86,83 86,30 60,17" fill="#4324c9"/>
+        <polygon points="60,6 100,24 100,88 60,126 60,113 90,83 90,30 60,17" fill="#4324c9"/>
         <!-- Horizontal Side Spikes -->
         <polygon points="4,61 32,56 32,66" fill="#facc15"/>
         <polygon points="116,61 88,56 88,66" fill="#eab308"/>
@@ -286,7 +319,8 @@
       </div>
       <div class="column-header">
         <span>Name</span>
-        <span>Date Modified</span>
+        <span>Type</span>
+        <span class="col-right">Date Modified</span>
       </div>
       <div id="fileList"></div>
     </div>
@@ -317,6 +351,42 @@
       lock: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#e3b341" stroke-width="1.3"><rect x="3" y="7" width="10" height="7" rx="1"/><path d="M5 7V5a3 3 0 0 1 6 0v2"/></svg>`
     };
 
+    function getPathFromHash() {
+      const raw = window.location.hash.replace(/^#\/?/, '');
+      return raw ? decodeURIComponent(raw) : '';
+    }
+
+    function buildHashUrl(folderPath) {
+      if (!folderPath) {
+        return window.location.pathname + window.location.search;
+      }
+      const encoded = folderPath.split('/').map(encodeURIComponent).join('/');
+      return '#' + encoded;
+    }
+
+    // Seed browser history so mobile Back button navigates up folders instead of exiting
+    function initHistory() {
+      currentPath = getPathFromHash();
+      if (!currentPath) {
+        history.replaceState({ path: '' }, '', buildHashUrl(''));
+        return;
+      }
+      const parts = currentPath.split('/');
+      history.replaceState({ path: '' }, '', buildHashUrl(''));
+      let accum = '';
+      parts.forEach((part, idx) => {
+        accum = idx === 0 ? part : `${accum}/${part}`;
+        history.pushState({ path: accum }, '', buildHashUrl(accum));
+      });
+    }
+
+    window.addEventListener('popstate', (event) => {
+      const targetPath = (event.state && typeof event.state.path === 'string')
+        ? event.state.path
+        : getPathFromHash();
+      navigateTo(targetPath, false);
+    });
+
     async function loadManifest() {
       try {
         const res = await fetch('manifest.json?t=' + Date.now());
@@ -332,7 +402,10 @@
       }
     }
 
-    function navigateTo(folderPath) {
+    function navigateTo(folderPath, pushHistory = true) {
+      if (pushHistory && folderPath !== currentPath) {
+        history.pushState({ path: folderPath }, '', buildHashUrl(folderPath));
+      }
       currentPath = folderPath;
       closeDecryptBox();
       renderDirectory();
@@ -351,6 +424,27 @@
         });
       }
       bc.innerHTML = html;
+    }
+
+    // Strip file extensions so the Name column stays clean
+    function getCleanName(item) {
+      if (item.type === 'dir') return item.name;
+      if (item.locked || item.name.endsWith('.locked.txt')) {
+        return item.name.replace(/\.locked\.txt$/i, '');
+      }
+      const lastDot = item.name.lastIndexOf('.');
+      return lastDot > 0 ? item.name.substring(0, lastDot) : item.name;
+    }
+
+    // Extract readable Type label for the Type column
+    function getFileType(item) {
+      if (item.type === 'dir') return 'Folder';
+      if (item.locked || item.name.endsWith('.locked.txt')) return 'Encrypted';
+      const lastDot = item.name.lastIndexOf('.');
+      if (lastDot > 0 && lastDot < item.name.length - 1) {
+        return item.name.substring(lastDot + 1).toUpperCase();
+      }
+      return 'File';
     }
 
     // Returns direct commit date if present, or latest commit date of files inside the folder
@@ -386,6 +480,7 @@
             ${ICONS.folder}
             <span class="item-link">..</span>
           </div>
+          <div class="row-type"></div>
           <div class="row-meta"></div>`;
         listEl.appendChild(upRow);
       }
@@ -415,22 +510,23 @@
         const row = document.createElement('div');
         row.className = 'file-row';
 
+        const cleanName = getCleanName(item);
+        const fileType = getFileType(item);
+
         let icon = ICONS.notebook;
-        let badge = '';
         if (item.type === 'dir') {
           icon = ICONS.folder;
-          row.title = `Open folder ${item.name}`;
+          row.title = `Open folder ${cleanName}`;
         } else if (item.locked) {
           icon = ICONS.lock;
-          badge = `<span class="badge-locked">Encrypted</span>`;
-          row.title = `Unlock ${item.name}`;
+          row.title = `Unlock ${cleanName}`;
         } else {
-          row.title = `Open ${item.name}`;
+          row.title = `Open ${cleanName}`;
         }
 
         const link = document.createElement('a');
         link.className = 'item-link';
-        link.textContent = item.name;
+        link.textContent = cleanName;
         if (item.type !== 'dir' && !item.locked) {
           link.href = item.path;
           link.target = '_blank';
@@ -441,7 +537,7 @@
           if (item.type === 'dir') {
             navigateTo(item.path);
           } else if (item.locked) {
-            openDecryptBox(item.path, item.name);
+            openDecryptBox(item.path, cleanName);
           } else if (e.target.tagName !== 'A') {
             window.open(item.path, '_blank');
           }
@@ -451,21 +547,29 @@
         left.className = 'row-left';
         left.insertAdjacentHTML('beforeend', icon);
         left.appendChild(link);
-        if (badge) left.insertAdjacentHTML('beforeend', badge);
+
+        const typeCol = document.createElement('div');
+        typeCol.className = 'row-type';
+        if (item.locked) {
+          typeCol.innerHTML = `<span class="type-locked">${fileType}</span>`;
+        } else {
+          typeCol.textContent = fileType;
+        }
 
         const meta = document.createElement('div');
         meta.className = 'row-meta';
         meta.textContent = getModifiedDate(item);
 
         row.appendChild(left);
+        row.appendChild(typeCol);
         row.appendChild(meta);
         listEl.appendChild(row);
       });
     }
 
-    function openDecryptBox(filePath, fileName) {
+    function openDecryptBox(filePath, displayName) {
       activeLockedPath = filePath;
-      document.getElementById('decryptTargetName').textContent = fileName;
+      document.getElementById('decryptTargetName').textContent = displayName;
       document.getElementById('decryptError').textContent = '';
       document.getElementById('passInput').value = '';
       document.getElementById('decryptBox').style.display = 'block';
@@ -511,6 +615,7 @@
       }
     }
 
+    initHistory();
     loadManifest();
   </script>
 </body>
