@@ -58,6 +58,7 @@
       display: flex;
       flex-direction: column;
       padding: 14px 24px 24px;
+      min-height: 0;
     }
 
     /* Buttons */
@@ -71,15 +72,17 @@
       cursor: pointer;
       display: inline-flex;
       align-items: center;
-      gap: 4px;
+      gap: 5px;
+      text-decoration: none;
     }
     .btn:hover {
       background: #30363d;
       border-color: #484f58;
+      color: #ffffff;
     }
 
-    /* File Browser Panel (Fills Remaining Viewport) */
-    .list-panel {
+    /* Shared Panel Shell (Directory & Content Viewer) */
+    .main-panel {
       flex: 1;
       display: flex;
       flex-direction: column;
@@ -87,6 +90,7 @@
       border-radius: 4px;
       overflow: hidden;
       background: #181b20;
+      min-height: 0;
     }
     .list-header {
       background: #21262d;
@@ -94,6 +98,9 @@
       border-bottom: 1px solid #2d333b;
       display: flex;
       align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
     }
     .breadcrumb {
       display: flex;
@@ -116,6 +123,10 @@
     }
     .breadcrumb span.sep {
       color: #6e7681;
+    }
+    .breadcrumb span.current-file {
+      color: #e6edf3;
+      font-weight: 700;
     }
 
     /* Aligned 3-Column Grid (Name | Type | Date Modified) */
@@ -218,6 +229,81 @@
       text-align: right;
     }
 
+    /* Inline Content Viewer */
+    #viewerView {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+      min-height: 0;
+    }
+    .viewer-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 7px 14px;
+      background: #1b1f25;
+      border-bottom: 1px solid #2d333b;
+      flex-wrap: wrap;
+    }
+    .viewer-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .viewer-info {
+      font-family: "Courier New", Courier, monospace;
+      font-size: 12px;
+      color: #8b949e;
+    }
+    #viewerBody {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: auto;
+      background: #121417;
+      min-height: 0;
+    }
+    .viewer-frame {
+      width: 100%;
+      flex: 1;
+      border: none;
+      background: #ffffff;
+      min-height: 65vh;
+    }
+    .viewer-image-stage {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      overflow: auto;
+      background: #0d1014;
+    }
+    .viewer-image-stage img {
+      max-width: 100%;
+      max-height: 75vh;
+      border: 1px solid #2d333b;
+      border-radius: 3px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+    }
+    .viewer-text {
+      margin: 0;
+      padding: 22px 26px;
+      font-family: "Courier New", Courier, "Lucida Console", monospace;
+      font-size: 13.5px;
+      line-height: 1.65;
+      color: #e6edf3;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-width: 920px;
+    }
+    .viewer-loading {
+      padding: 24px;
+      color: #8b949e;
+      font-family: "Courier New", Courier, monospace;
+    }
+
     /* Decrypt Drawer */
     .decrypt-box {
       display: none;
@@ -279,6 +365,8 @@
         padding-left: 10px;
         padding-right: 10px;
       }
+      .viewer-text { padding: 16px; font-size: 13px; }
+      .viewer-image-stage { padding: 12px; }
     }
   </style>
 </head>
@@ -288,23 +376,15 @@
     <a class="brand" href="#" onclick="navigateTo(''); return false;">
       <!-- Outcasts Shield Crest SVG -->
       <svg class="brand-logo" width="36" height="36" viewBox="0 0 120 132" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <!-- Dark Shield Base -->
         <polygon points="60,6 95,24 95,88 60,126 25,88 25,24" fill="#090714"/>
-        <!-- Left Magenta Shield Half -->
         <polygon points="60,6 18,24 18,88 60,126 60,113 23,83 23,30 60,17" fill="#d91eff"/>
-        <!-- Right Indigo-Violet Shield Half -->
         <polygon points="60,6 100,24 100,88 60,126 60,113 90,83 90,30 60,17" fill="#4324c9"/>
-        <!-- Horizontal Side Spikes -->
         <polygon points="4,61 32,56 32,66" fill="#facc15"/>
         <polygon points="116,61 88,56 88,66" fill="#eab308"/>
-        <!-- Vertical Crimson Accent Tips -->
         <polygon points="60,21 55,34 65,34" fill="#dc2626"/>
         <polygon points="60,103 55,89 65,89" fill="#dc2626"/>
-        <!-- Inner Yellow Four-Point Eye Flare -->
         <path d="M60 25 C67 43 76 53 93 61 C76 69 67 79 60 98 C53 79 44 69 27 61 C44 53 53 43 60 25 Z" fill="#facc15"/>
-        <!-- Dark Eye Socket -->
         <circle cx="60" cy="61" r="15" fill="#090714"/>
-        <!-- Split Central Pupil (Magenta Left / Yellow Right) -->
         <path d="M60 52.5 A8.5 8.5 0 0 0 60 69.5 C57.5 64 57.5 58 60 52.5 Z" fill="#e62eff"/>
         <path d="M60 52.5 A8.5 8.5 0 0 1 60 69.5 C57.5 64 57.5 58 60 52.5 Z" fill="#fde047"/>
       </svg>
@@ -313,16 +393,32 @@
   </header>
 
   <main class="container">
-    <div class="list-panel">
+    <div class="main-panel">
       <div class="list-header">
         <nav class="breadcrumb" id="breadcrumb"></nav>
       </div>
-      <div class="column-header">
-        <span>Name</span>
-        <span>Type</span>
-        <span class="col-right">Date Modified</span>
+
+      <!-- DIRECTORY TABLE VIEW -->
+      <div id="directoryView" style="display:flex; flex-direction:column; flex:1; min-height:0;">
+        <div class="column-header">
+          <span>Name</span>
+          <span>Type</span>
+          <span class="col-right">Date Modified</span>
+        </div>
+        <div id="fileList"></div>
       </div>
-      <div id="fileList"></div>
+
+      <!-- INLINE CONTENT VIEWER -->
+      <div id="viewerView">
+        <div class="viewer-toolbar">
+          <div class="viewer-actions">
+            <button class="btn" type="button" onclick="closeViewer()">← Back</button>
+            <span class="viewer-info" id="viewerMeta"></span>
+          </div>
+          <a class="btn" id="viewerRawLink" href="#" target="_blank" rel="noopener">Open Raw ↗</a>
+        </div>
+        <div id="viewerBody"></div>
+      </div>
     </div>
 
     <!-- AES-GCM Passphrase Box -->
@@ -342,12 +438,17 @@
   <script>
     let allEntries = [];
     let currentPath = '';
+    let activeFile = null;
     let activeLockedPath = '';
+
+    const IMAGE_EXTS = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico']);
+    const FRAME_EXTS = new Set(['html', 'htm', 'pdf']);
 
     const ICONS = {
       home: `<svg width="14" height="14" viewBox="0 0 16 16" fill="#58a6ff"><path d="M8 1.5L1 7.5h2v6h4v-4h2v4h4v-6h2L8 1.5z"/></svg>`,
       folder: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#8b949e" stroke-width="1.3"><path d="M1.5 3.5h4.5l1.5 1.5h7v7.5h-13z"/></svg>`,
       notebook: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#8b949e" stroke-width="1.3"><rect x="3" y="1.5" width="10" height="13" rx="1"/><line x1="5.5" y1="5" x2="10.5" y2="5"/><line x1="5.5" y1="8" x2="10.5" y2="8"/><line x1="5.5" y1="11" x2="8.5" y2="11"/></svg>`,
+      image: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#8b949e" stroke-width="1.3"><rect x="2" y="2.5" width="12" height="11" rx="1"/><circle cx="5.5" cy="6" r="1.1"/><path d="M2.5 11.5l3.2-3.2 2.3 2.3 2.5-2.5 3 3.4"/></svg>`,
       lock: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#e3b341" stroke-width="1.3"><rect x="3" y="7" width="10" height="7" rx="1"/><path d="M5 7V5a3 3 0 0 1 6 0v2"/></svg>`
     };
 
@@ -356,43 +457,69 @@
       return raw ? decodeURIComponent(raw) : '';
     }
 
-    function buildHashUrl(folderPath) {
-      if (!folderPath) {
+    function buildHashUrl(targetPath) {
+      if (!targetPath) {
         return window.location.pathname + window.location.search;
       }
-      const encoded = folderPath.split('/').map(encodeURIComponent).join('/');
+      const encoded = targetPath.split('/').map(encodeURIComponent).join('/');
       return '#' + encoded;
     }
 
-    // Seed browser history so mobile Back button navigates up folders instead of exiting
-    function initHistory() {
-      currentPath = getPathFromHash();
-      if (!currentPath) {
-        history.replaceState({ path: '' }, '', buildHashUrl(''));
-        return;
-      }
-      const parts = currentPath.split('/');
-      history.replaceState({ path: '' }, '', buildHashUrl(''));
+    function seedHistoryForFolder(folderPath) {
+      history.replaceState({ path: '', file: null }, '', buildHashUrl(''));
+      if (!folderPath) return;
+      const parts = folderPath.split('/');
       let accum = '';
       parts.forEach((part, idx) => {
         accum = idx === 0 ? part : `${accum}/${part}`;
-        history.pushState({ path: accum }, '', buildHashUrl(accum));
+        history.pushState({ path: accum, file: null }, '', buildHashUrl(accum));
       });
     }
 
     window.addEventListener('popstate', (event) => {
-      const targetPath = (event.state && typeof event.state.path === 'string')
-        ? event.state.path
-        : getPathFromHash();
-      navigateTo(targetPath, false);
+      if (event.state && typeof event.state.path === 'string') {
+        if (event.state.file) {
+          const entry = allEntries.find(e => e.path === event.state.file);
+          if (entry) {
+            currentPath = event.state.path;
+            openFileViewer(entry, false);
+            return;
+          }
+        }
+        navigateTo(event.state.path, false);
+        return;
+      }
+      resolveRouteFromHash(false);
     });
+
+    function resolveRouteFromHash(seedHistory = true) {
+      const hashPath = getPathFromHash();
+      const matchedFile = allEntries.find(e => e.path === hashPath && e.type === 'file' && !e.locked);
+
+      if (matchedFile) {
+        const lastSlash = matchedFile.path.lastIndexOf('/');
+        const parentFolder = lastSlash === -1 ? '' : matchedFile.path.substring(0, lastSlash);
+        currentPath = parentFolder;
+        if (seedHistory) {
+          seedHistoryForFolder(parentFolder);
+          history.pushState({ path: parentFolder, file: matchedFile.path }, '', buildHashUrl(matchedFile.path));
+        }
+        openFileViewer(matchedFile, false);
+      } else {
+        currentPath = hashPath;
+        if (seedHistory) {
+          seedHistoryForFolder(hashPath);
+        }
+        navigateTo(hashPath, false);
+      }
+    }
 
     async function loadManifest() {
       try {
         const res = await fetch('manifest.json?t=' + Date.now());
         if (!res.ok) throw new Error('manifest.json not found');
         allEntries = await res.json();
-        renderDirectory();
+        resolveRouteFromHash(true);
       } catch (err) {
         document.getElementById('fileList').innerHTML = `
           <div class="file-row empty-row">
@@ -403,12 +530,25 @@
     }
 
     function navigateTo(folderPath, pushHistory = true) {
-      if (pushHistory && folderPath !== currentPath) {
-        history.pushState({ path: folderPath }, '', buildHashUrl(folderPath));
+      if (pushHistory && (folderPath !== currentPath || activeFile !== null)) {
+        history.pushState({ path: folderPath, file: null }, '', buildHashUrl(folderPath));
       }
       currentPath = folderPath;
+      activeFile = null;
       closeDecryptBox();
+
+      document.getElementById('viewerView').style.display = 'none';
+      document.getElementById('viewerBody').innerHTML = '';
+      document.getElementById('directoryView').style.display = 'flex';
       renderDirectory();
+    }
+
+    function closeViewer() {
+      if (history.state && history.state.file) {
+        history.back();
+      } else {
+        navigateTo(currentPath, true);
+      }
     }
 
     function renderBreadcrumb() {
@@ -423,10 +563,12 @@
           html += `<span class="sep">/</span><a onclick="navigateTo('${target}')">${part}</a>`;
         });
       }
+      if (activeFile) {
+        html += `<span class="sep">/</span><span class="current-file">${getCleanName(activeFile)}</span>`;
+      }
       bc.innerHTML = html;
     }
 
-    // Strip file extensions so the Name column stays clean
     function getCleanName(item) {
       if (item.type === 'dir') return item.name;
       if (item.locked || item.name.endsWith('.locked.txt')) {
@@ -436,18 +578,20 @@
       return lastDot > 0 ? item.name.substring(0, lastDot) : item.name;
     }
 
-    // Extract readable Type label for the Type column
+    function getExtension(name) {
+      const lastDot = name.lastIndexOf('.');
+      return (lastDot > 0 && lastDot < name.length - 1)
+        ? name.substring(lastDot + 1).toLowerCase()
+        : '';
+    }
+
     function getFileType(item) {
       if (item.type === 'dir') return 'Folder';
       if (item.locked || item.name.endsWith('.locked.txt')) return 'Encrypted';
-      const lastDot = item.name.lastIndexOf('.');
-      if (lastDot > 0 && lastDot < item.name.length - 1) {
-        return item.name.substring(lastDot + 1).toUpperCase();
-      }
-      return 'File';
+      const ext = getExtension(item.name);
+      return ext ? ext.toUpperCase() : 'File';
     }
 
-    // Returns direct commit date if present, or latest commit date of files inside the folder
     function getModifiedDate(item) {
       if (item.modified) return item.modified;
       if (item.type === 'dir') {
@@ -466,7 +610,6 @@
       const listEl = document.getElementById('fileList');
       listEl.innerHTML = '';
 
-      // Add ".." parent row when inside a subfolder
       if (currentPath !== '') {
         const parentPath = currentPath.includes('/')
           ? currentPath.substring(0, currentPath.lastIndexOf('/'))
@@ -485,14 +628,12 @@
         listEl.appendChild(upRow);
       }
 
-      // Filter entries belonging strictly to currentPath
       const items = allEntries.filter(entry => {
         const lastSlash = entry.path.lastIndexOf('/');
         const parent = lastSlash === -1 ? '' : entry.path.substring(0, lastSlash);
         return parent === currentPath;
       });
 
-      // Sort folders first, then files alphabetically
       items.sort((a, b) => {
         if (a.type !== b.type) return a.type === 'dir' ? -1 : 1;
         return a.name.localeCompare(b.name);
@@ -512,6 +653,7 @@
 
         const cleanName = getCleanName(item);
         const fileType = getFileType(item);
+        const ext = getExtension(item.name);
 
         let icon = ICONS.notebook;
         if (item.type === 'dir') {
@@ -520,6 +662,9 @@
         } else if (item.locked) {
           icon = ICONS.lock;
           row.title = `Unlock ${cleanName}`;
+        } else if (IMAGE_EXTS.has(ext)) {
+          icon = ICONS.image;
+          row.title = `View image ${cleanName}`;
         } else {
           row.title = `Open ${cleanName}`;
         }
@@ -528,18 +673,20 @@
         link.className = 'item-link';
         link.textContent = cleanName;
         if (item.type !== 'dir' && !item.locked) {
-          link.href = item.path;
-          link.target = '_blank';
+          link.href = buildHashUrl(item.path);
+          link.onclick = (e) => {
+            e.preventDefault();
+            openFileViewer(item, true);
+          };
         }
 
-        // Full-row click handling
         row.onclick = (e) => {
           if (item.type === 'dir') {
             navigateTo(item.path);
           } else if (item.locked) {
             openDecryptBox(item.path, cleanName);
           } else if (e.target.tagName !== 'A') {
-            window.open(item.path, '_blank');
+            openFileViewer(item, true);
           }
         };
 
@@ -565,6 +712,52 @@
         row.appendChild(meta);
         listEl.appendChild(row);
       });
+    }
+
+    async function openFileViewer(item, pushHistory = true) {
+      if (pushHistory) {
+        history.pushState({ path: currentPath, file: item.path }, '', buildHashUrl(item.path));
+      }
+
+      activeFile = item;
+      closeDecryptBox();
+      renderBreadcrumb();
+
+      document.getElementById('directoryView').style.display = 'none';
+      const viewerView = document.getElementById('viewerView');
+      const viewerBody = document.getElementById('viewerBody');
+      viewerView.style.display = 'flex';
+
+      const fileType = getFileType(item);
+      const modified = getModifiedDate(item);
+      document.getElementById('viewerMeta').textContent = `${fileType} • Modified ${modified}`;
+      document.getElementById('viewerRawLink').href = item.path;
+
+      const ext = getExtension(item.name);
+
+      if (IMAGE_EXTS.has(ext)) {
+        viewerBody.innerHTML = `
+          <div class="viewer-image-stage">
+            <img src="${item.path}" alt="${getCleanName(item)}">
+          </div>`;
+      } else if (FRAME_EXTS.has(ext)) {
+        viewerBody.innerHTML = `
+          <iframe class="viewer-frame" src="${item.path}" title="${getCleanName(item)}"></iframe>`;
+      } else {
+        viewerBody.innerHTML = `<div class="viewer-loading">Loading file contents...</div>`;
+        try {
+          const res = await fetch(item.path + '?t=' + Date.now());
+          if (!res.ok) throw new Error('Unable to load file');
+          const text = await res.text();
+          const pre = document.createElement('pre');
+          pre.className = 'viewer-text';
+          pre.textContent = text;
+          viewerBody.innerHTML = '';
+          viewerBody.appendChild(pre);
+        } catch (err) {
+          viewerBody.innerHTML = `<div class="viewer-loading" style="color:#f85149;">Failed to load ${item.name}.</div>`;
+        }
+      }
     }
 
     function openDecryptBox(filePath, displayName) {
@@ -615,7 +808,6 @@
       }
     }
 
-    initHistory();
     loadManifest();
   </script>
 </body>
