@@ -10,15 +10,15 @@
     "type": "dir"
   },
   {
-    "name": "cindy.png",
-    "path": "Pictures/cindy.png",
+    "name": "test.txt",
+    "path": "Files/test.txt",
     "type": "file",
     "locked": false,
     "modified": "2026-11-25"
   },
   {
-    "name": "test.txt",
-    "path": "Files/test.txt",
+    "name": "cindy.png",
+    "path": "Pictures/cindy.png",
     "type": "file",
     "locked": false,
     "modified": "2026-11-25"
