@@ -19,6 +19,13 @@
     "modified": "2026-11-25"
   },
   {
+    "name": "NullLevel_Test_.vault.txt",
+    "path": "NullLevel_Test_.vault.txt",
+    "type": "file",
+    "locked": false,
+    "modified": "2026-11-25"
+  },
+  {
     "name": "end is never the end.txt",
     "path": "end is never the end.txt",
     "type": "file",
