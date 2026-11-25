@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Blank Zone Directory Webpage</title>
+  <title>Outcasts Organization Software — Directory</title>
   <style>
     :root {
       color-scheme: dark;
@@ -26,7 +26,7 @@
     /* Top Header (Full Width) */
     .navbar {
       width: 100%;
-      padding: 12px 24px 10px;
+      padding: 12px 24px 11px;
       border-bottom: 1px solid #2a2f38;
       display: flex;
       align-items: center;
@@ -35,15 +35,20 @@
     .brand {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
+      gap: 12px;
       text-decoration: none;
       color: #e6edf3;
-      font-size: 23px;
-      font-weight: 400;
-      letter-spacing: -0.3px;
+      font-family: "Courier New", Courier, "Lucida Console", monospace;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 0.6px;
     }
     .brand:hover {
       color: #ffffff;
+    }
+    .brand-logo {
+      flex-shrink: 0;
+      filter: drop-shadow(0 0 5px rgba(217, 30, 255, 0.35));
     }
 
     /* Main Container (Full Page) */
@@ -53,20 +58,6 @@
       display: flex;
       flex-direction: column;
       padding: 14px 24px 24px;
-    }
-
-    /* Sub-toolbar (Ready for future buttons) */
-    .sub-toolbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-    .hint-text {
-      color: #8b949e;
-      font-size: 12px;
     }
 
     /* Buttons */
@@ -99,7 +90,7 @@
     }
     .list-header {
       background: #21262d;
-      padding: 8px 14px;
+      padding: 9px 14px;
       border-bottom: 1px solid #2d333b;
       display: flex;
       align-items: center;
@@ -124,6 +115,22 @@
     }
     .breadcrumb span.sep {
       color: #6e7681;
+    }
+
+    /* Column Header Bar Under Breadcrumb */
+    .column-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 14px;
+      background: #1b1f25;
+      border-bottom: 1px solid #2d333b;
+      color: #8b949e;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      user-select: none;
     }
 
     #fileList {
@@ -176,9 +183,11 @@
     }
     .row-meta {
       color: #8b949e;
+      font-family: "Courier New", Courier, monospace;
       font-size: 12px;
       white-space: nowrap;
-      margin-left: 12px;
+      margin-left: 16px;
+      text-align: right;
     }
     .badge-locked {
       background: #272118;
@@ -244,20 +253,40 @@
 
   <header class="navbar">
     <a class="brand" href="#" onclick="navigateTo(''); return false;">
-      <span>jupyter</span>
+      <!-- Outcasts Shield Crest SVG -->
+      <svg class="brand-logo" width="32" height="36" viewBox="0 0 120 132" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Dark Shield Base -->
+        <polygon points="60,6 95,24 95,88 60,126 25,88 25,24" fill="#090714"/>
+        <!-- Left Magenta Shield Half -->
+        <polygon points="60,6 25,24 25,88 60,126 60,113 34,83 34,30 60,17" fill="#d91eff"/>
+        <!-- Right Indigo-Violet Shield Half -->
+        <polygon points="60,6 95,24 95,88 60,126 60,113 86,83 86,30 60,17" fill="#4324c9"/>
+        <!-- Horizontal Side Spikes -->
+        <polygon points="4,61 32,56 32,66" fill="#facc15"/>
+        <polygon points="116,61 88,56 88,66" fill="#eab308"/>
+        <!-- Vertical Crimson Accent Tips -->
+        <polygon points="60,21 55,34 65,34" fill="#dc2626"/>
+        <polygon points="60,103 55,89 65,89" fill="#dc2626"/>
+        <!-- Inner Yellow Four-Point Eye Flare -->
+        <path d="M60 25 C67 43 76 53 93 61 C76 69 67 79 60 98 C53 79 44 69 27 61 C44 53 53 43 60 25 Z" fill="#facc15"/>
+        <!-- Dark Eye Socket -->
+        <circle cx="60" cy="61" r="15" fill="#090714"/>
+        <!-- Split Central Pupil (Magenta Left / Yellow Right) -->
+        <path d="M60 52.5 A8.5 8.5 0 0 0 60 69.5 C57.5 64 57.5 58 60 52.5 Z" fill="#e62eff"/>
+        <path d="M60 52.5 A8.5 8.5 0 0 1 60 69.5 C57.5 64 57.5 58 60 52.5 Z" fill="#fde047"/>
+      </svg>
+      <span>Outcasts Organization Software</span>
     </a>
   </header>
 
   <main class="container">
-    <div class="sub-toolbar">
-      <div class="hint-text">
-        Click a folder or file to open.
-      </div>
-    </div>
-
     <div class="list-panel">
       <div class="list-header">
         <nav class="breadcrumb" id="breadcrumb"></nav>
+      </div>
+      <div class="column-header">
+        <span>Name</span>
+        <span>Date Modified</span>
       </div>
       <div id="fileList"></div>
     </div>
@@ -322,6 +351,20 @@
         });
       }
       bc.innerHTML = html;
+    }
+
+    // Returns direct commit date if present, or latest commit date of files inside the folder
+    function getModifiedDate(item) {
+      if (item.modified) return item.modified;
+      if (item.type === 'dir') {
+        const prefix = item.path + '/';
+        const childDates = allEntries
+          .filter(e => e.path.startsWith(prefix) && e.modified)
+          .map(e => e.modified)
+          .sort();
+        return childDates.length ? childDates[childDates.length - 1] : '—';
+      }
+      return '—';
     }
 
     function renderDirectory() {
@@ -412,7 +455,7 @@
 
         const meta = document.createElement('div');
         meta.className = 'row-meta';
-        meta.textContent = item.modified || '';
+        meta.textContent = getModifiedDate(item);
 
         row.appendChild(left);
         row.appendChild(meta);

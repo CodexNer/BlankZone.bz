@@ -29,7 +29,10 @@ jobs:
               rel_dir = os.path.relpath(root, ".")
               for d in sorted(dirs):
                   path = d if rel_dir == "." else f"{rel_dir}/{d}"
-                  entries.append({"name": d, "path": path, "type": "dir"})
+                  last_mod = subprocess.check_output(
+                      ["git", "log", "-1", "--format=%cs", "--", path]
+                  ).decode().strip() or ""
+                  entries.append({"name": d, "path": path, "type": "dir", "modified": last_mod})
               for f in sorted(files):
                   if f in ignore or f.startswith("."):
                       continue
