@@ -1,13 +1,13 @@
 [
   {
-    "name": "Files",
-    "path": "Files",
+    "name": "Test_Files",
+    "path": "Test_Files",
     "type": "dir",
     "modified": "2026-11-25"
   },
   {
-    "name": "Pictures",
-    "path": "Pictures",
+    "name": "Test_Media",
+    "path": "Test_Media",
     "type": "dir",
     "modified": "2026-11-25"
   },
@@ -19,13 +19,6 @@
     "modified": "2026-11-25"
   },
   {
-    "name": "NullLevel_Test_.vault.txt",
-    "path": "NullLevel_Test_.vault.txt",
-    "type": "file",
-    "locked": false,
-    "modified": "2026-11-25"
-  },
-  {
     "name": "end is never the end.txt",
     "path": "end is never the end.txt",
     "type": "file",
@@ -33,22 +26,29 @@
     "modified": "2026-11-25"
   },
   {
-    "name": "test.txt",
-    "path": "Files/test.txt",
+    "name": "Larpkai.video.download",
+    "path": "Test_Media/Larpkai.video.download",
     "type": "file",
     "locked": false,
     "modified": "2026-11-25"
   },
   {
     "name": "cindy.png",
-    "path": "Pictures/cindy.png",
+    "path": "Test_Media/cindy.png",
     "type": "file",
     "locked": false,
     "modified": "2026-11-25"
   },
   {
     "name": "old_athena.png",
-    "path": "Pictures/old_athena.png",
+    "path": "Test_Media/old_athena.png",
+    "type": "file",
+    "locked": false,
+    "modified": "2026-11-25"
+  },
+  {
+    "name": "test.txt",
+    "path": "Test_Files/test.txt",
     "type": "file",
     "locked": false,
     "modified": "2026-11-25"
