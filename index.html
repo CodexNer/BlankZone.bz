@@ -321,9 +321,27 @@
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.65);
       outline: none;
     }
+    .drive-video-wrap {
+      width: 100%;
+      max-width: 1040px;
+      aspect-ratio: 16 / 9;
+      max-height: 75vh;
+      background: #000000;
+      border: 1px solid #2d333b;
+      border-radius: 4px;
+      overflow: hidden;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.65);
+    }
+    .drive-video-wrap iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
+      background: #000000;
+    }
     .viewer-audio-card {
       width: 100%;
-      max-width: 520px;
+      max-width: 540px;
       background: #181b20;
       border: 1px solid #2d333b;
       border-radius: 6px;
@@ -371,6 +389,14 @@
       width: 100%;
       height: 40px;
       outline: none;
+    }
+    .drive-audio-embed {
+      width: 100%;
+      height: 140px;
+      border: 1px solid #2d333b;
+      border-radius: 4px;
+      background: #0d1014;
+      display: block;
     }
     .viewer-text {
       margin: 0;
@@ -561,9 +587,13 @@
     function isVideoLinkFile(item) {
       if (!item || item.type !== 'file') return false;
       const lower = item.name.toLowerCase();
-      if (lower.endsWith('.video.url') || lower.endsWith('.video.link')) return true;
+      if (lower.endsWith('.video.url') || lower.endsWith('.video.link') || lower.endsWith('.video.locked.txt')) return true;
       if (lower.endsWith('.url') || lower.endsWith('.link')) {
         const base = lower.replace(/\.(url|link)$/, '');
+        return VIDEO_EXTS.has(getExtension(base));
+      }
+      if (lower.endsWith('.locked.txt')) {
+        const base = lower.replace(/\.locked\.txt$/, '');
         return VIDEO_EXTS.has(getExtension(base));
       }
       return false;
@@ -572,9 +602,13 @@
     function isAudioLinkFile(item) {
       if (!item || item.type !== 'file') return false;
       const lower = item.name.toLowerCase();
-      if (lower.endsWith('.audio.url') || lower.endsWith('.audio.link')) return true;
+      if (lower.endsWith('.audio.url') || lower.endsWith('.audio.link') || lower.endsWith('.audio.locked.txt')) return true;
       if (lower.endsWith('.url') || lower.endsWith('.link')) {
         const base = lower.replace(/\.(url|link)$/, '');
+        return AUDIO_EXTS.has(getExtension(base));
+      }
+      if (lower.endsWith('.locked.txt')) {
+        const base = lower.replace(/\.locked\.txt$/, '');
         return AUDIO_EXTS.has(getExtension(base));
       }
       return false;
@@ -784,10 +818,13 @@
     function getCleanName(item) {
       if (item.type === 'dir') return item.name;
       if (isVaultFile(item)) return item.name.replace(/\.vault\.txt$/i, '');
-      if (isLockedLinkFile(item)) return item.name.replace(/\.locked\.txt$/i, '');
       if (isVideoLinkFile(item) || isAudioLinkFile(item)) {
-        return item.name.replace(/\.[a-z0-9]+\.(url|link)$/i, '');
+        return item.name
+          .replace(/\.(video|audio)\.locked\.txt$/i, '')
+          .replace(/\.locked\.txt$/i, '')
+          .replace(/\.[a-z0-9]+\.(url|link)$/i, '');
       }
+      if (isLockedLinkFile(item)) return item.name.replace(/\.locked\.txt$/i, '');
       const lastDot = item.name.lastIndexOf('.');
       return lastDot > 0 ? item.name.substring(0, lastDot) : item.name;
     }
@@ -805,9 +842,9 @@
         return unlockedVaults.has(vPath) ? 'Unlocked' : 'Locked Folder';
       }
       if (item.type === 'dir') return 'Folder';
-      if (isLockedLinkFile(item)) return 'Encrypted';
       if (isVideoLinkFile(item)) return 'VIDEO';
       if (isAudioLinkFile(item)) return 'AUDIO';
+      if (isLockedLinkFile(item)) return 'Encrypted';
       const ext = getExtension(item.name);
       return ext ? ext.toUpperCase() : 'File';
     }
@@ -888,18 +925,18 @@
         } else if (item.type === 'dir') {
           icon = ICONS.folder;
           row.title = `Open folder ${cleanName}`;
+        } else if (VIDEO_EXTS.has(ext) || isVideoLinkFile(item)) {
+          icon = ICONS.video;
+          row.title = lockedLink ? `Unlock & play video ${cleanName}` : `Play video ${cleanName}`;
+        } else if (AUDIO_EXTS.has(ext) || isAudioLinkFile(item)) {
+          icon = ICONS.audio;
+          row.title = lockedLink ? `Unlock & play audio ${cleanName}` : `Play audio ${cleanName}`;
         } else if (lockedLink) {
           icon = ICONS.lock;
           row.title = `Unlock ${cleanName}`;
         } else if (IMAGE_EXTS.has(ext)) {
           icon = ICONS.image;
           row.title = `View image ${cleanName}`;
-        } else if (VIDEO_EXTS.has(ext) || isVideoLinkFile(item)) {
-          icon = ICONS.video;
-          row.title = `Play video ${cleanName}`;
-        } else if (AUDIO_EXTS.has(ext) || isAudioLinkFile(item)) {
-          icon = ICONS.audio;
-          row.title = `Play audio ${cleanName}`;
         } else {
           row.title = `Open ${cleanName}`;
         }
@@ -989,9 +1026,31 @@
           }
 
           const queryId = parsed.searchParams.get('id');
-          if (queryId && (parsed.pathname === '/open' || parsed.pathname === '/uc')) {
+          if (queryId && /^\/(?:u\/\d+\/)?(?:open|uc)$/.test(parsed.pathname)) {
             return {
               embedUrl: `https://drive.google.com/file/d/${queryId}/preview`,
+              isDrive: true
+            };
+          }
+        }
+
+        // Google Drive direct download host (drive.usercontent.google.com)
+        if (host === 'drive.usercontent.google.com') {
+          const queryId = parsed.searchParams.get('id');
+          if (queryId) {
+            return {
+              embedUrl: `https://drive.google.com/file/d/${queryId}/preview`,
+              isDrive: true
+            };
+          }
+        }
+
+        // Googleusercontent direct file links (lh3.googleusercontent.com/d/<id>)
+        if (host.endsWith('.googleusercontent.com')) {
+          const gucMatch = parsed.pathname.match(/\/d\/([a-zA-Z0-9_-]+)/);
+          if (gucMatch) {
+            return {
+              embedUrl: `https://drive.google.com/file/d/${gucMatch[1]}/preview`,
               isDrive: true
             };
           }
@@ -1052,21 +1111,68 @@
       const cleanName = getCleanName(item);
       const fileType = getFileType(item);
       const modified = getModifiedDate(item);
+      const isVideo = isVideoLinkFile(item);
+      const isAudio = isAudioLinkFile(item);
       const { embedUrl, isDrive } = toEmbeddableUrl(rawUrl);
 
-      document.getElementById('viewerMeta').textContent =
-        `${fileType}${isDrive ? ' • Drive Preview' : ''} • Modified ${modified}`;
-      document.getElementById('viewerRawLink').href = rawUrl;
+      const metaLabel = `${fileType}${isDrive ? ' • Drive Embed' : ''} • Modified ${modified}`;
+      document.getElementById('viewerMeta').textContent = metaLabel;
 
-      const iframe = document.createElement('iframe');
-      iframe.className = isDrive ? 'viewer-frame drive-frame' : 'viewer-frame';
-      iframe.src = embedUrl;
-      iframe.title = cleanName;
-      iframe.setAttribute('allow', 'autoplay; fullscreen');
-      iframe.setAttribute('allowfullscreen', '');
+      const rawLinkEl = document.getElementById('viewerRawLink');
+      rawLinkEl.href = rawUrl;
+      rawLinkEl.textContent = isDrive ? 'Open in Drive ↗' : 'Open Raw ↗';
 
       viewerBody.innerHTML = '';
-      viewerBody.appendChild(iframe);
+
+      if (isVideo) {
+        const stage = document.createElement('div');
+        stage.className = 'viewer-media-stage';
+
+        const wrap = document.createElement('div');
+        wrap.className = 'drive-video-wrap';
+
+        const iframe = document.createElement('iframe');
+        iframe.src = embedUrl;
+        iframe.title = cleanName;
+        iframe.setAttribute('allow', 'autoplay; fullscreen; encrypted-media');
+        iframe.setAttribute('allowfullscreen', '');
+
+        wrap.appendChild(iframe);
+        stage.appendChild(wrap);
+        viewerBody.appendChild(stage);
+      } else if (isAudio) {
+        viewerBody.innerHTML = `
+          <div class="viewer-media-stage">
+            <div class="viewer-audio-card">
+              <div class="audio-card-header">
+                <div class="audio-icon-box">
+                  <svg width="22" height="22" viewBox="0 0 16 16" fill="none" stroke="#58a6ff" stroke-width="1.4">
+                    <path d="M2.5 6.2h2.4l3.1-2.7v9l-3.1-2.7H2.5z"/>
+                    <path d="M10.5 5.5a3.5 3.5 0 0 1 0 5"/>
+                    <path d="M12.3 3.8a6 6 0 0 1 0 8.4"/>
+                  </svg>
+                </div>
+                <div class="audio-title-group">
+                  <div class="audio-title">${cleanName}</div>
+                  <div class="audio-sub">${metaLabel}</div>
+                </div>
+              </div>
+              <iframe
+                class="drive-audio-embed"
+                src="${embedUrl}"
+                title="${cleanName}"
+                allow="autoplay; encrypted-media"></iframe>
+            </div>
+          </div>`;
+      } else {
+        const iframe = document.createElement('iframe');
+        iframe.className = isDrive ? 'viewer-frame drive-frame' : 'viewer-frame';
+        iframe.src = embedUrl;
+        iframe.title = cleanName;
+        iframe.setAttribute('allow', 'autoplay; fullscreen; encrypted-media');
+        iframe.setAttribute('allowfullscreen', '');
+        viewerBody.appendChild(iframe);
+      }
     }
 
     function dataUrlToBlobUrl(dataUrl) {
@@ -1137,6 +1243,7 @@
       document.getElementById('viewerMeta').textContent = metaLabel;
 
       const rawLinkEl = document.getElementById('viewerRawLink');
+      rawLinkEl.textContent = 'Open Raw ↗';
 
       // Public .url / .link file stored directly in the repository
       if (!item.virtual && LINK_EXTS.has(ext)) {
