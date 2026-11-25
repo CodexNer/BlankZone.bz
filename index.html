@@ -30,6 +30,8 @@
       border-bottom: 1px solid #2a2f38;
       display: flex;
       align-items: center;
+      justify-content: space-between;
+      gap: 16px;
       background: #181b20;
     }
     .brand {
@@ -49,6 +51,26 @@
     .brand-logo {
       flex-shrink: 0;
       filter: drop-shadow(0 0 5px rgba(217, 30, 255, 0.35));
+    }
+
+    /* Right-side Developer & Copyright Notice */
+    .nav-credits {
+      margin-left: auto;
+      text-align: right;
+      font-family: "Courier New", Courier, "Lucida Console", monospace;
+      font-size: 10.5px;
+      line-height: 1.45;
+      color: #8b949e;
+      border-left: 1px solid #2d333b;
+      padding-left: 14px;
+    }
+    .nav-credits .nav-dev strong {
+      color: #c9d1d9;
+      font-weight: 700;
+    }
+    .nav-credits .nav-legal {
+      font-size: 9.5px;
+      color: #6e7681;
     }
 
     /* Main Container (Full Page) */
@@ -465,6 +487,22 @@
     }
 
     /* Mobile Adjustments */
+    @media (max-width: 720px) {
+      .navbar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+      }
+      .nav-credits {
+        margin-left: 0;
+        text-align: left;
+        border-left: none;
+        padding-left: 0;
+        border-top: 1px solid #262c34;
+        padding-top: 6px;
+        width: 100%;
+      }
+    }
     @media (max-width: 560px) {
       .navbar { padding: 10px 14px; }
       .brand { font-size: 16px; gap: 9px; }
@@ -502,6 +540,11 @@
       </svg>
       <span>Outcasts Organization Software</span>
     </a>
+
+    <div class="nav-credits">
+      <div class="nav-dev">Made and Developed by <strong>CodexNer &amp; Athena</strong></div>
+      <div class="nav-legal">&copy; 2026 Outcasts Organization. All rights reserved. Plagiarism will not be tolerated.</div>
+    </div>
   </header>
 
   <main class="container">
