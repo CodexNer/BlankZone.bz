@@ -72,6 +72,9 @@
       font-size: 9.5px;
       color: #6e7681;
     }
+    #lastUpdatedBadge {
+      color: #8b949e;
+    }
 
     /* Main Container (Full Page) */
     .container {
@@ -656,7 +659,7 @@
 
     <div class="nav-credits">
       <div class="nav-dev">Made and Developed by <strong><b style="color: rgb(213, 33, 213);">CodexNer</b> &amp; <b style="color: rgb(233, 233, 27);">Athena</b></strong></div>
-      <div class="nav-legal">&copy; 2026 Outcasts Organization. All rights reserved. Unauthorized copying, modification, or redistribution is prohibited.<br>We are watching.</div>
+      <div class="nav-legal">&copy; 2026 Outcasts Organization. All rights reserved. Unauthorized copying, modification, or redistribution is prohibited.<br>We are watching.<span id="lastUpdatedBadge"></span></div>
     </div>
   </header>
 
@@ -705,6 +708,8 @@
   </main>
 
   <script>
+    const DEFAULT_GITHUB_REPO = 'CodexNer/BlankZone.bz';
+
     let repoEntries = [];
     let currentPath = '';
     let activeFile = null;
@@ -917,10 +922,79 @@
       navigateTo(hashPath, false);
     }
 
+    function detectGitHubRepo() {
+      const host = window.location.hostname.toLowerCase();
+      if (host.endsWith('.github.io')) {
+        const owner = host.replace(/\.github\.io$/, '');
+        const repoSeg = window.location.pathname.split('/').filter(Boolean)[0];
+        return `${owner}/${repoSeg || `${owner}.github.io`}`;
+      }
+      return DEFAULT_GITHUB_REPO;
+    }
+
+    function formatRelativeTime(dateInput) {
+      const date = dateInput instanceof Date ? dateInput : new Date(dateInput);
+      const diffSec = Math.floor((Date.now() - date.getTime()) / 1000);
+      if (!Number.isFinite(diffSec) || diffSec < 60) return 'Updated just now';
+
+      const units = [
+        { label: 'year', secs: 31536000 },
+        { label: 'month', secs: 2592000 },
+        { label: 'day', secs: 86400 },
+        { label: 'hour', secs: 3600 },
+        { label: 'minute', secs: 60 }
+      ];
+
+      for (const { label, secs } of units) {
+        const count = Math.floor(diffSec / secs);
+        if (count >= 1) {
+          return `Updated ${count} ${label}${count === 1 ? '' : 's'} ago`;
+        }
+      }
+      return 'Updated just now';
+    }
+
+    function renderLastUpdated(dateInput) {
+      const el = document.getElementById('lastUpdatedBadge');
+      if (!el || !dateInput) return;
+      const date = new Date(dateInput);
+      if (Number.isNaN(date.getTime())) return;
+
+      el.textContent = ` • ${formatRelativeTime(date)}`;
+      el.title = `Last commit: ${date.toLocaleString()}`;
+    }
+
+    async function fetchLastCommitTime(fallbackHeaderDate = null) {
+      const repo = detectGitHubRepo();
+      if (repo) {
+        try {
+          const res = await fetch(`https://api.github.com/repos/${repo}/commits?per_page=1`, {
+            headers: { 'Accept': 'application/vnd.github+json' },
+            cache: 'no-store'
+          });
+          if (res.ok) {
+            const commits = await res.json();
+            const commitDate = commits?.[0]?.commit?.committer?.date || commits?.[0]?.commit?.author?.date;
+            if (commitDate) {
+              renderLastUpdated(commitDate);
+              return;
+            }
+          }
+        } catch (_) {
+          // Fall through to Last-Modified header fallback
+        }
+      }
+      if (fallbackHeaderDate) {
+        renderLastUpdated(fallbackHeaderDate);
+      }
+    }
+
     async function loadManifest() {
+      let manifestLastModified = null;
       try {
         const res = await fetch('manifest.json?t=' + Date.now());
         if (!res.ok) throw new Error('manifest.json not found');
+        manifestLastModified = res.headers.get('Last-Modified');
         repoEntries = await res.json();
         resolveRouteFromHash(true);
       } catch (err) {
@@ -930,6 +1004,7 @@
           </div>`;
         renderBreadcrumb();
       }
+      fetchLastCommitTime(manifestLastModified);
     }
 
     function cleanupViewerMedia() {
