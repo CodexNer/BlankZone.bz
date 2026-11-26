@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Outcasts Organization Software</title>
-  <link rel="icon" type="image/png" href="bz_logo.png">
+  <title>Home — Outcasts Organization Software</title>
+  <link rel="icon" type="image/png" href="assets/bz_logo.png">
 
   <!-- Discord / Open Graph Embed -->
   <meta name="theme-color" content="#d91eff">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Outcasts Organization Software">
   <meta property="og:description" content="Directory Software for Blank Zone chronicles and entries. Click to go to folder/file.">
-  <meta property="og:image" content="https://codexner.github.io/BlankZone.bz/bz_logo.png">
+  <meta property="og:image" content="https://codexner.github.io/BlankZone.bz/assets/bz_logo.png">
   <meta name="twitter:card" content="summary">
 
   <style>
@@ -331,6 +331,8 @@
     .viewer-frame.drive-frame {
       background: #0d1014;
     }
+
+    /* Image Stage */
     .viewer-media-stage {
       flex: 1;
       display: flex;
@@ -347,55 +349,79 @@
       border-radius: 3px;
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
     }
-    .viewer-media-stage video {
-      max-width: 100%;
-      max-height: 75vh;
-      background: #000000;
+
+    /* Full-Width Media Workspace (Audio & Video + Transcript + Entries) */
+    .media-workspace {
+      width: 100%;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding: 16px;
+      background: #0d1014;
+      min-height: 0;
+    }
+
+    /* Top Full-Width Player Card */
+    .media-player-banner {
+      width: 100%;
+      background: #181b20;
       border: 1px solid #2d333b;
-      border-radius: 4px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.65);
+      border-radius: 6px;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+    }
+    .media-player-banner.video-banner {
+      padding: 0;
+      overflow: hidden;
+    }
+    .video-theater-stage {
+      width: 100%;
+      background: #050709;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-bottom: 1px solid #262c34;
+    }
+    .video-theater-stage video {
+      width: 100%;
+      max-height: 54vh;
+      display: block;
+      background: #000000;
       outline: none;
     }
-    .drive-video-wrap {
-      width: 100%;
-      max-width: 1040px;
-      aspect-ratio: 16 / 9;
-      max-height: 75vh;
-      background: #000000;
-      border: 1px solid #2d333b;
-      border-radius: 4px;
-      overflow: hidden;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.65);
+    .media-workspace.no-subtitles .video-theater-stage video {
+      max-height: 72vh;
     }
-    .drive-video-wrap iframe {
+    .drive-video-full {
       width: 100%;
-      height: 100%;
+      height: 54vh;
+      min-height: 300px;
       border: none;
       display: block;
       background: #000000;
     }
-
-    /* Audio Log Player & Synced Subtitles */
-    .viewer-audio-card {
-      width: 100%;
-      max-width: 680px;
-      background: #181b20;
-      border: 1px solid #2d333b;
-      border-radius: 6px;
-      padding: 20px 22px;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    .media-workspace.no-subtitles .drive-video-full {
+      height: 72vh;
     }
+    .video-banner-footer {
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
     .audio-card-header {
       display: flex;
       align-items: center;
       gap: 14px;
     }
     .audio-icon-box {
-      width: 44px;
-      height: 44px;
+      width: 42px;
+      height: 42px;
       border-radius: 6px;
       background: #21262d;
       border: 1px solid #30363d;
@@ -410,7 +436,7 @@
     }
     .audio-title {
       font-family: "Courier New", Courier, monospace;
-      font-size: 15px;
+      font-size: 16px;
       font-weight: 700;
       color: #e6edf3;
       white-space: nowrap;
@@ -423,93 +449,157 @@
       color: #8b949e;
       margin-top: 3px;
     }
-    .viewer-audio-card audio {
+    .media-player-banner audio {
       width: 100%;
-      height: 40px;
+      height: 42px;
       outline: none;
     }
     .drive-audio-embed {
       width: 100%;
-      height: 140px;
+      height: 120px;
       border: 1px solid #2d333b;
       border-radius: 4px;
       background: #0d1014;
       display: block;
     }
 
-    /* Subtitle Live Readout + Scrollable Log */
-    .audio-subtitle-section {
+    /* Bottom 2-Column Split (Left: Spotify-Style Transcript | Right: Entries) */
+    .media-split-grid {
+      width: 100%;
+      flex: 1;
+      display: grid;
+      grid-template-columns: minmax(0, 1.38fr) minmax(300px, 1fr);
+      gap: 14px;
+      min-height: 310px;
+    }
+
+    /* Left Column: Spotify-Style Rolling Transcript */
+    .transcript-panel {
+      background: #181b20;
+      border: 1px solid #2d333b;
+      border-radius: 6px;
       display: flex;
       flex-direction: column;
-      gap: 10px;
-      border-top: 1px solid #262c34;
-      padding-top: 14px;
-    }
-    .audio-live-caption {
-      background: #0d1117;
-      border: 1px solid #30363d;
-      border-left: 3px solid #58a6ff;
-      border-radius: 4px;
-      padding: 12px 14px;
-      font-family: "Courier New", Courier, "Lucida Console", monospace;
-      min-height: 62px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      gap: 4px;
-    }
-    .caption-status-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 10.5px;
-      color: #6e7681;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    .caption-active-text {
-      font-size: 13.5px;
-      line-height: 1.5;
-      color: #e6edf3;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-    .caption-active-text.idle {
-      color: #6e7681;
-      font-style: italic;
-    }
-    .audio-log-wrapper {
-      background: #0d1117;
-      border: 1px solid #262c34;
-      border-radius: 4px;
       overflow: hidden;
-      display: flex;
-      flex-direction: column;
+      min-height: 310px;
     }
-    .audio-log-header {
-      padding: 6px 12px;
+    .panel-bar-header {
+      padding: 9px 14px;
       background: #14181f;
       border-bottom: 1px solid #262c34;
       font-family: "Courier New", Courier, monospace;
       font-size: 11px;
       color: #8b949e;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 10px;
+    }
+    .spotify-lyrics-stage {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 10px;
+      padding: 20px 24px;
+      background: radial-gradient(circle at 20% 50%, rgba(88, 166, 255, 0.06), transparent 65%), #0d1117;
+      font-family: "Courier New", Courier, "Lucida Console", monospace;
+      overflow-y: auto;
+    }
+    .lyric-line {
+      padding: 8px 14px;
+      border-radius: 5px;
+      transition: all 0.18s ease;
+      cursor: pointer;
+      line-height: 1.5;
+      word-break: break-word;
+      white-space: pre-wrap;
+    }
+    .lyric-line.past {
+      font-size: 15px;
+      color: #6e7681;
+      opacity: 0.82;
+    }
+    .lyric-line.past:hover {
+      color: #adbac7;
+      background: rgba(255, 255, 255, 0.03);
+      opacity: 1;
+    }
+    .lyric-line.active {
+      font-size: 20px;
+      font-weight: 700;
+      color: #ffffff;
+      background: rgba(88, 166, 255, 0.11);
+      border-left: 4px solid #58a6ff;
+      padding: 13px 16px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+      cursor: default;
+    }
+    .lyric-line.active.gap-state {
+      color: #8b949e;
+      font-weight: 400;
+      font-size: 16px;
+      border-left-color: #30363d;
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .lyric-line.upcoming {
+      font-size: 15.5px;
+      color: #8b949e;
+    }
+    .lyric-line.upcoming:hover {
+      color: #e6edf3;
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .lyric-ts-tag {
+      font-size: 11.5px;
+      font-weight: 600;
+      color: #58a6ff;
+      margin-right: 8px;
+      opacity: 0.85;
+    }
+    .lyric-line.active .lyric-ts-tag {
+      color: #79c0ff;
+      opacity: 1;
+    }
+    .lyric-gap-badge {
+      align-self: flex-start;
+      margin-left: 14px;
+      font-size: 11px;
+      color: #e3b341;
+      background: rgba(227, 179, 65, 0.08);
+      border: 1px dashed rgba(227, 179, 65, 0.35);
+      padding: 2px 9px;
+      border-radius: 999px;
+      user-select: none;
+    }
+
+    /* Right Column: Timestamped Entries Log */
+    .entries-panel {
+      background: #181b20;
+      border: 1px solid #2d333b;
+      border-radius: 6px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      min-height: 310px;
+      max-height: 460px;
     }
     .audio-log-list {
-      max-height: 220px;
+      flex: 1;
       overflow-y: auto;
+      background: #0d1117;
       scroll-behavior: smooth;
     }
     .audio-log-line {
       display: grid;
-      grid-template-columns: 62px minmax(0, 1fr);
+      grid-template-columns: 64px minmax(0, 1fr);
       gap: 10px;
-      padding: 7px 12px;
+      padding: 9px 13px;
       border-bottom: 1px solid #181c23;
       font-family: "Courier New", Courier, "Lucida Console", monospace;
-      font-size: 12.5px;
+      font-size: 13px;
       line-height: 1.45;
       color: #8b949e;
       cursor: pointer;
@@ -525,11 +615,11 @@
     .audio-log-line.active {
       background: #13233a;
       color: #e6edf3;
-      box-shadow: inset 2px 0 0 #58a6ff;
+      box-shadow: inset 3px 0 0 #58a6ff;
     }
     .audio-log-time {
       color: #58a6ff;
-      font-size: 11.5px;
+      font-size: 12px;
       user-select: none;
       white-space: nowrap;
     }
@@ -639,7 +729,28 @@
       margin-top: 8px;
     }
 
-    /* Mobile Adjustments */
+    /* Responsive Breakpoints (Tablet & Phone Vertical Stacking) */
+    @media (max-width: 820px) {
+      .media-split-grid {
+        grid-template-columns: 1fr;
+        min-height: 0;
+      }
+      .transcript-panel {
+        min-height: 230px;
+      }
+      .entries-panel {
+        min-height: 220px;
+        max-height: 280px;
+      }
+      .lyric-line.active {
+        font-size: 17.5px;
+      }
+      .lyric-line.past,
+      .lyric-line.upcoming {
+        font-size: 14px;
+      }
+    }
+
     @media (max-width: 720px) {
       .navbar {
         flex-direction: column;
@@ -656,6 +767,7 @@
         width: 100%;
       }
     }
+
     @media (max-width: 560px) {
       .navbar { padding: 10px 14px; }
       .brand { font-size: 16px; gap: 9px; }
@@ -670,9 +782,21 @@
         padding: 14px 16px;
         font-size: 12.5px;
       }
+      .media-workspace {
+        padding: 10px;
+        gap: 10px;
+      }
+      .media-player-banner {
+        padding: 12px 14px;
+      }
+      .spotify-lyrics-stage {
+        padding: 14px 12px;
+      }
+      .lyric-line.active {
+        font-size: 16.5px;
+        padding: 10px 12px;
+      }
       .viewer-media-stage { padding: 12px; }
-      .viewer-audio-card { padding: 14px; }
-      .audio-log-list { max-height: 180px; }
     }
   </style>
 </head>
@@ -753,6 +877,7 @@
 
   <script>
     const DEFAULT_GITHUB_REPO = 'CodexNer/BlankZone.bz';
+    const LYRIC_WINDOW_SECONDS = 10;
 
     let repoEntries = [];
     let currentPath = '';
@@ -1099,6 +1224,20 @@
       }
     }
 
+    function updateDocumentTitle() {
+      const segments = ['Home'];
+      if (currentPath) {
+        segments.push(...currentPath.split('/'));
+      }
+      if (activeFile) {
+        segments.push(getCleanName(activeFile));
+      }
+      const trail = segments.length > 4
+        ? `${segments[0]} / ... / ${segments.slice(-2).join(' / ')}`
+        : segments.join(' / ');
+      document.title = `${trail} — Outcasts Organization Software`;
+    }
+
     function renderBreadcrumb() {
       const bc = document.getElementById('breadcrumb');
       let html = `<a onclick="navigateTo('')" title="Root">${ICONS.home}</a>`;
@@ -1123,6 +1262,8 @@
       } else {
         actionsEl.innerHTML = '';
       }
+
+      updateDocumentTitle();
     }
 
     function getCleanName(item) {
@@ -1438,53 +1579,24 @@
 
       viewerBody.innerHTML = '';
 
-      if (isVideo && !isDrive) {
-        viewerBody.innerHTML = `
-          <div class="viewer-media-stage">
-            <video controls playsinline preload="metadata" src="${rawUrl}"></video>
-          </div>`;
-      } else if (isAudio && !isDrive) {
-        renderAudioPlayer(viewerBody, rawUrl, cleanName, metaLabel, item);
-      } else if (isVideo) {
-        const stage = document.createElement('div');
-        stage.className = 'viewer-media-stage';
-
-        const wrap = document.createElement('div');
-        wrap.className = 'drive-video-wrap';
-
-        const iframe = document.createElement('iframe');
-        iframe.src = embedUrl;
-        iframe.title = cleanName;
-        iframe.setAttribute('allow', 'autoplay; fullscreen; encrypted-media');
-        iframe.setAttribute('allowfullscreen', '');
-
-        wrap.appendChild(iframe);
-        stage.appendChild(wrap);
-        viewerBody.appendChild(stage);
+      if (isVideo) {
+        renderMediaWorkspace(viewerBody, {
+          mediaType: 'video',
+          src: isDrive ? embedUrl : rawUrl,
+          isDrive,
+          title: cleanName,
+          subtitle: metaLabel,
+          item
+        });
       } else if (isAudio) {
-        viewerBody.innerHTML = `
-          <div class="viewer-media-stage">
-            <div class="viewer-audio-card">
-              <div class="audio-card-header">
-                <div class="audio-icon-box">
-                  <svg width="22" height="22" viewBox="0 0 16 16" fill="none" stroke="#58a6ff" stroke-width="1.4">
-                    <path d="M2.5 6.2h2.4l3.1-2.7v9l-3.1-2.7H2.5z"/>
-                    <path d="M10.5 5.5a3.5 3.5 0 0 1 0 5"/>
-                    <path d="M12.3 3.8a6 6 0 0 1 0 8.4"/>
-                  </svg>
-                </div>
-                <div class="audio-title-group">
-                  <div class="audio-title">${escapeHtml(cleanName)}</div>
-                  <div class="audio-sub">${escapeHtml(metaLabel)}</div>
-                </div>
-              </div>
-              <iframe
-                class="drive-audio-embed"
-                src="${embedUrl}"
-                title="${escapeHtml(cleanName)}"
-                allow="autoplay; encrypted-media"></iframe>
-            </div>
-          </div>`;
+        renderMediaWorkspace(viewerBody, {
+          mediaType: 'audio',
+          src: isDrive ? embedUrl : rawUrl,
+          isDrive,
+          title: cleanName,
+          subtitle: metaLabel,
+          item
+        });
       } else {
         const iframe = document.createElement('iframe');
         iframe.className = isDrive ? 'viewer-frame drive-frame' : 'viewer-frame';
@@ -1508,12 +1620,12 @@
       return URL.createObjectURL(new Blob([bytes], { type: mime }));
     }
 
-    /* WebVTT Pairing & Parser for Audio Log Player */
-    function findMatchingVtt(audioItem) {
-      if (!audioItem) return null;
-      const lastSlash = audioItem.path.lastIndexOf('/');
-      const parentDir = lastSlash === -1 ? '' : audioItem.path.substring(0, lastSlash);
-      const baseLower = getCleanName(audioItem).toLowerCase();
+    /* WebVTT Pairing & Parser for Audio & Video Players */
+    function findMatchingVtt(mediaItem) {
+      if (!mediaItem) return null;
+      const lastSlash = mediaItem.path.lastIndexOf('/');
+      const parentDir = lastSlash === -1 ? '' : mediaItem.path.substring(0, lastSlash);
+      const baseLower = getCleanName(mediaItem).toLowerCase();
 
       const siblings = getAllCombinedEntries().filter(entry => {
         if (entry.type !== 'file') return false;
@@ -1603,12 +1715,154 @@
       return cues;
     }
 
-    async function renderAudioPlayer(viewerBody, src, title, subtitle, item = null) {
-      const vttItem = findMatchingVtt(item);
+    /* Spotify-Style Rolling Lyrics / Transcript Builder (10s Before & After Preview) */
+    function buildSpotifyLyricsHtml(cues, now, isStarted) {
+      let activeIdx = -1;
+      for (let i = 0; i < cues.length; i++) {
+        if (now >= cues[i].start && now <= cues[i].end) {
+          activeIdx = i;
+        }
+      }
 
-      viewerBody.innerHTML = `
-        <div class="viewer-media-stage">
-          <div class="viewer-audio-card">
+      const rows = [];
+
+      if (activeIdx !== -1) {
+        // Past lines (up to 2 lines within 10s lookbehind, always keeping immediate previous line)
+        const pastStart = Math.max(0, activeIdx - 2);
+        for (let i = pastStart; i < activeIdx; i++) {
+          const isImmediatePrev = i === activeIdx - 1;
+          const withinWindow = (cues[activeIdx].start - cues[i].end) <= LYRIC_WINDOW_SECONDS;
+          if (isImmediatePrev || withinWindow) {
+            rows.push(`
+              <div class="lyric-line past" data-seek-idx="${i}" title="Seek to ${formatLogTimestamp(cues[i].start)}">
+                <span class="lyric-ts-tag">[${formatLogTimestamp(cues[i].start)}]</span>${escapeHtml(cues[i].text)}
+              </div>`);
+          }
+        }
+
+        // Active line
+        rows.push(`
+          <div class="lyric-line active">
+            ${escapeHtml(cues[activeIdx].text)}
+          </div>`);
+
+        // Upcoming lines (up to 3 lines within 10s lookahead, always keeping immediate next line)
+        const futureEnd = Math.min(cues.length - 1, activeIdx + 3);
+        for (let i = activeIdx + 1; i <= futureEnd; i++) {
+          const isImmediateNext = i === activeIdx + 1;
+          const gapFromPrev = cues[i].start - cues[i - 1].end;
+          const withinWindow = (cues[i].start - cues[activeIdx].end) <= LYRIC_WINDOW_SECONDS;
+          if (isImmediateNext || withinWindow) {
+            if (gapFromPrev > LYRIC_WINDOW_SECONDS) {
+              rows.push(`<div class="lyric-gap-badge">••• +${Math.round(gapFromPrev)}s pause •••</div>`);
+            }
+            rows.push(`
+              <div class="lyric-line upcoming" data-seek-idx="${i}" title="Seek to ${formatLogTimestamp(cues[i].start)}">
+                <span class="lyric-ts-tag">[${formatLogTimestamp(cues[i].start)}]</span>${escapeHtml(cues[i].text)}
+              </div>`);
+          }
+        }
+
+        return {
+          activeIdx,
+          timeLabel: `${formatLogTimestamp(cues[activeIdx].start)} → ${formatLogTimestamp(cues[activeIdx].end)}`,
+          html: rows.join('')
+        };
+      }
+
+      // Currently in a gap / silence between cues
+      let prevIdx = -1;
+      let nextIdx = -1;
+      for (let i = 0; i < cues.length; i++) {
+        if (cues[i].end < now) prevIdx = i;
+        if (nextIdx === -1 && cues[i].start > now) nextIdx = i;
+      }
+
+      if (prevIdx !== -1) {
+        if (prevIdx - 1 >= 0 && (cues[prevIdx].start - cues[prevIdx - 1].end) <= LYRIC_WINDOW_SECONDS) {
+          rows.push(`
+            <div class="lyric-line past" data-seek-idx="${prevIdx - 1}" title="Seek to ${formatLogTimestamp(cues[prevIdx - 1].start)}">
+              <span class="lyric-ts-tag">[${formatLogTimestamp(cues[prevIdx - 1].start)}]</span>${escapeHtml(cues[prevIdx - 1].text)}
+            </div>`);
+        }
+        rows.push(`
+          <div class="lyric-line past" data-seek-idx="${prevIdx}" title="Seek to ${formatLogTimestamp(cues[prevIdx].start)}">
+            <span class="lyric-ts-tag">[${formatLogTimestamp(cues[prevIdx].start)}]</span>${escapeHtml(cues[prevIdx].text)}
+          </div>`);
+      }
+
+      if (!isStarted && now === 0) {
+        rows.push(`
+          <div class="lyric-line active gap-state">
+            [ Press play to begin synced transcript ]
+          </div>`);
+      } else if (nextIdx !== -1) {
+        const secsLeft = Math.max(1, Math.ceil(cues[nextIdx].start - now));
+        const totalGap = prevIdx !== -1
+          ? cues[nextIdx].start - cues[prevIdx].end
+          : cues[nextIdx].start;
+        const gapNote = totalGap > LYRIC_WINDOW_SECONDS
+          ? `• • •  (Next line in ${secsLeft}s)`
+          : `• • •`;
+        rows.push(`
+          <div class="lyric-line active gap-state">
+            ${gapNote}
+          </div>`);
+      } else {
+        rows.push(`
+          <div class="lyric-line active gap-state">
+            [ End of transcript ]
+          </div>`);
+      }
+
+      if (nextIdx !== -1) {
+        const previewEnd = Math.min(cues.length - 1, nextIdx + 1);
+        for (let i = nextIdx; i <= previewEnd; i++) {
+          if (i === nextIdx || (cues[i].start - cues[nextIdx].end) <= LYRIC_WINDOW_SECONDS) {
+            rows.push(`
+              <div class="lyric-line upcoming" data-seek-idx="${i}" title="Seek to ${formatLogTimestamp(cues[i].start)}">
+                <span class="lyric-ts-tag">[${formatLogTimestamp(cues[i].start)}]</span>${escapeHtml(cues[i].text)}
+              </div>`);
+          }
+        }
+      }
+
+      return {
+        activeIdx: -1,
+        timeLabel: formatLogTimestamp(now),
+        html: rows.join('')
+      };
+    }
+
+    async function renderMediaWorkspace(viewerBody, { mediaType, src, isDrive = false, title, subtitle, item = null }) {
+      const vttItem = findMatchingVtt(item);
+      const isVideo = mediaType === 'video';
+      const logLabel = isVideo ? 'VIDEO LOG' : 'AUDIO LOG';
+      const fullSub = `${subtitle}${vttItem ? ' • Subtitles Linked' : ''}`;
+
+      const topPlayerHtml = isVideo
+        ? `
+          <div class="media-player-banner video-banner">
+            <div class="video-theater-stage">
+              ${isDrive
+                ? `<iframe class="drive-video-full" src="${src}" title="${escapeHtml(title)}" allow="autoplay; fullscreen; encrypted-media" allowfullscreen></iframe>`
+                : `<video id="oosMediaPlayer" controls playsinline preload="metadata" src="${src}"></video>`}
+            </div>
+            <div class="video-banner-footer">
+              <div class="audio-icon-box">
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="#58a6ff" stroke-width="1.4">
+                  <rect x="1.8" y="3" width="12.4" height="10" rx="1.2"/>
+                  <polygon points="6.5,5.5 11,8 6.5,10.5" fill="#58a6ff" stroke="none"/>
+                </svg>
+              </div>
+              <div class="audio-title-group">
+                <div class="audio-title">${escapeHtml(title)}</div>
+                <div class="audio-sub">${escapeHtml(fullSub)}</div>
+              </div>
+            </div>
+          </div>`
+        : `
+          <div class="media-player-banner">
             <div class="audio-card-header">
               <div class="audio-icon-box">
                 <svg width="22" height="22" viewBox="0 0 16 16" fill="none" stroke="#58a6ff" stroke-width="1.4">
@@ -1619,38 +1873,49 @@
               </div>
               <div class="audio-title-group">
                 <div class="audio-title">${escapeHtml(title)}</div>
-                <div class="audio-sub" id="audioCardSub">${escapeHtml(subtitle)}${vttItem ? ' • Subtitles Linked' : ''}</div>
+                <div class="audio-sub">${escapeHtml(fullSub)}</div>
               </div>
             </div>
-            <audio id="oosAudioPlayer" controls preload="metadata" src="${src}"></audio>
-            <div id="audioSubtitleMount"></div>
-          </div>
+            ${isDrive
+              ? `<iframe class="drive-audio-embed" src="${src}" title="${escapeHtml(title)}" allow="autoplay; encrypted-media"></iframe>`
+              : `<audio id="oosMediaPlayer" controls preload="metadata" src="${src}"></audio>`}
+          </div>`;
+
+      viewerBody.innerHTML = `
+        <div class="media-workspace ${vttItem ? '' : 'no-subtitles'}" id="oosMediaWorkspace">
+          ${topPlayerHtml}
+          <div id="mediaSplitMount" style="display:none; flex:1; min-height:0;"></div>
         </div>`;
 
       if (!vttItem) return;
 
-      const audioEl = document.getElementById('oosAudioPlayer');
-      const subMount = document.getElementById('audioSubtitleMount');
-      if (!audioEl || !subMount) return;
+      const workspaceEl = document.getElementById('oosMediaWorkspace');
+      const splitMount = document.getElementById('mediaSplitMount');
+      const mediaEl = document.getElementById('oosMediaPlayer');
+      if (!splitMount) return;
 
       try {
         const vttText = await loadVttText(vttItem);
         const cues = parseVtt(vttText);
-        if (cues.length === 0) return;
+        if (cues.length === 0) {
+          if (workspaceEl) workspaceEl.classList.add('no-subtitles');
+          return;
+        }
 
-        subMount.innerHTML = `
-          <div class="audio-subtitle-section">
-            <div class="audio-live-caption">
-              <div class="caption-status-bar">
+        splitMount.style.display = 'flex';
+        splitMount.innerHTML = `
+          <div class="media-split-grid">
+            <div class="transcript-panel">
+              <div class="panel-bar-header">
                 <span>LIVE TRANSCRIPT // ${escapeHtml(vttItem.name)}</span>
                 <span id="liveCueTime">--:--</span>
               </div>
-              <div class="caption-active-text idle" id="liveCueText">[ Press play to begin synced audio log ]</div>
+              <div class="spotify-lyrics-stage" id="spotifyLyricsStage"></div>
             </div>
-            <div class="audio-log-wrapper">
-              <div class="audio-log-header">
-                <span>AUDIO LOG (${cues.length} ENTRIES)</span>
-                <span>CLICK LINE TO SEEK</span>
+            <div class="entries-panel">
+              <div class="panel-bar-header">
+                <span>${logLabel} (${cues.length} ENTRIES)</span>
+                <span>${mediaEl ? 'CLICK LINE TO SEEK' : 'DRIVE PREVIEW'}</span>
               </div>
               <div class="audio-log-list" id="audioLogList">
                 ${cues.map((cue, idx) => `
@@ -1664,61 +1929,67 @@
           </div>`;
 
         const liveTimeEl = document.getElementById('liveCueTime');
-        const liveTextEl = document.getElementById('liveCueText');
+        const lyricsStageEl = document.getElementById('spotifyLyricsStage');
         const logListEl = document.getElementById('audioLogList');
         const lineEls = Array.from(logListEl.querySelectorAll('.audio-log-line'));
-        let activeIdx = -1;
+        let lastActiveIdx = -2;
+        let lastRenderKey = '';
+
+        const seekToCue = (idx) => {
+          if (!mediaEl || idx < 0 || idx >= cues.length) return;
+          mediaEl.currentTime = cues[idx].start + 0.01;
+          if (mediaEl.paused) {
+            mediaEl.play().catch(() => {});
+          }
+        };
 
         lineEls.forEach((lineEl, idx) => {
-          lineEl.onclick = () => {
-            audioEl.currentTime = cues[idx].start + 0.01;
-            if (audioEl.paused) {
-              audioEl.play().catch(() => {});
-            }
-          };
+          lineEl.onclick = () => seekToCue(idx);
         });
 
+        lyricsStageEl.onclick = (e) => {
+          const target = e.target.closest('[data-seek-idx]');
+          if (target) {
+            seekToCue(Number(target.dataset.seekIdx));
+          }
+        };
+
         const syncSubtitles = () => {
-          const now = audioEl.currentTime;
-          let foundIdx = -1;
+          const now = mediaEl ? mediaEl.currentTime : 0;
+          const isStarted = mediaEl ? (!mediaEl.paused || mediaEl.currentTime > 0) : false;
+          const state = buildSpotifyLyricsHtml(cues, now, isStarted);
 
-          for (let i = 0; i < cues.length; i++) {
-            if (now >= cues[i].start && now <= cues[i].end) {
-              foundIdx = i;
-              break;
+          const renderKey = `${state.activeIdx}|${state.timeLabel}|${isStarted ? 1 : 0}`;
+          if (renderKey !== lastRenderKey) {
+            lastRenderKey = renderKey;
+            liveTimeEl.textContent = state.timeLabel;
+            lyricsStageEl.innerHTML = state.html;
+          }
+
+          if (state.activeIdx !== lastActiveIdx) {
+            if (lastActiveIdx >= 0 && lineEls[lastActiveIdx]) {
+              lineEls[lastActiveIdx].classList.remove('active');
             }
-          }
-
-          if (foundIdx === activeIdx) return;
-
-          if (activeIdx !== -1 && lineEls[activeIdx]) {
-            lineEls[activeIdx].classList.remove('active');
-          }
-
-          activeIdx = foundIdx;
-
-          if (foundIdx !== -1) {
-            const cue = cues[foundIdx];
-            liveTimeEl.textContent = `${formatLogTimestamp(cue.start)} → ${formatLogTimestamp(cue.end)}`;
-            liveTextEl.textContent = cue.text;
-            liveTextEl.classList.remove('idle');
-
-            const targetLine = lineEls[foundIdx];
-            if (targetLine) {
+            lastActiveIdx = state.activeIdx;
+            if (state.activeIdx >= 0 && lineEls[state.activeIdx]) {
+              const targetLine = lineEls[state.activeIdx];
               targetLine.classList.add('active');
               const targetTop = targetLine.offsetTop - logListEl.offsetTop - (logListEl.clientHeight / 2) + (targetLine.clientHeight / 2);
               logListEl.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
             }
-          } else {
-            liveTimeEl.textContent = formatLogTimestamp(now);
-            liveTextEl.textContent = '...';
-            liveTextEl.classList.add('idle');
           }
         };
 
-        audioEl.addEventListener('timeupdate', syncSubtitles);
-        audioEl.addEventListener('seeked', syncSubtitles);
+        syncSubtitles();
+
+        if (mediaEl) {
+          mediaEl.addEventListener('timeupdate', syncSubtitles);
+          mediaEl.addEventListener('seeked', syncSubtitles);
+          mediaEl.addEventListener('play', syncSubtitles);
+          mediaEl.addEventListener('pause', syncSubtitles);
+        }
       } catch (err) {
+        if (workspaceEl) workspaceEl.classList.add('no-subtitles');
         console.warn('Subtitle load skipped:', err);
       }
     }
@@ -1810,12 +2081,23 @@
             <img src="${mediaSrc}" alt="${escapeHtml(cleanName)}">
           </div>`;
       } else if (VIDEO_EXTS.has(ext)) {
-        viewerBody.innerHTML = `
-          <div class="viewer-media-stage">
-            <video controls playsinline preload="metadata" src="${mediaSrc}"></video>
-          </div>`;
+        renderMediaWorkspace(viewerBody, {
+          mediaType: 'video',
+          src: mediaSrc,
+          isDrive: false,
+          title: cleanName,
+          subtitle: metaLabel,
+          item
+        });
       } else if (AUDIO_EXTS.has(ext)) {
-        renderAudioPlayer(viewerBody, mediaSrc, cleanName, metaLabel, item);
+        renderMediaWorkspace(viewerBody, {
+          mediaType: 'audio',
+          src: mediaSrc,
+          isDrive: false,
+          title: cleanName,
+          subtitle: metaLabel,
+          item
+        });
       } else if (FRAME_EXTS.has(ext)) {
         viewerBody.innerHTML = `
           <iframe class="viewer-frame" src="${mediaSrc}" title="${escapeHtml(cleanName)}"></iframe>`;
