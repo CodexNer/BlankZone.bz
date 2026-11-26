@@ -3,7 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>OOS - Directory</title>
+  <title>Outcasts Organization Software</title>
+  <link rel="icon" type="image/png" href="bz_logo.png">
+
+  <!-- Discord / Open Graph Embed -->
+  <meta name="theme-color" content="#d91eff">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Outcasts Organization Software">
+  <meta property="og:description" content="Directory Software for Blank Zone chronicles and entries. Click to go to folder/file.">
+  <meta property="og:image" content="https://codexner.github.io/BlankZone.bz/bz_logo.png">
+  <meta name="twitter:card" content="summary">
+
   <style>
     :root {
       color-scheme: dark;
@@ -1857,7 +1867,6 @@
       }
 
       // 2. Text-based ARG Hint Prefix (for .locked.txt files)
-      // Checks first byte for '=' (61) or 'H'/'h' (72/104) before decoding
       if (bytes[0] === 0x3D || bytes[0] === 0x48 || bytes[0] === 0x68) {
         const fullText = new TextDecoder().decode(bytes);
 
