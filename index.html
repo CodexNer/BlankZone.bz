@@ -550,7 +550,7 @@
       font-family: "Courier New", Courier, monospace;
     }
 
-    /* Decrypt Drawer */
+    /* Decrypt Drawer & ARG Hint */
     .decrypt-box {
       display: none;
       margin-top: 14px;
@@ -565,6 +565,36 @@
       align-items: center;
       margin-bottom: 10px;
       color: #e6edf3;
+    }
+    .decrypt-hint-box {
+      display: none;
+      margin-bottom: 12px;
+      padding: 10px 13px;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-left: 3px solid #e3b341;
+      border-radius: 3px;
+      font-family: "Courier New", Courier, "Lucida Console", monospace;
+    }
+    .decrypt-hint-label {
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      color: #e3b341;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+    .decrypt-hint-text {
+      font-size: 12.5px;
+      line-height: 1.55;
+      color: #c9d1d9;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+    .decrypt-hint-text.loading {
+      color: #6e7681;
+      font-style: italic;
     }
     .decrypt-controls {
       display: flex;
@@ -693,11 +723,15 @@
       </div>
     </div>
 
-    <!-- AES-GCM Passphrase Box -->
+    <!-- AES-GCM Passphrase & ARG Hint Box -->
     <div id="decryptBox" class="decrypt-box">
       <div class="decrypt-box-header">
         <span id="decryptPromptLabel">🔒 Enter clearance passphrase:</span>
         <button class="btn" onclick="closeDecryptBox()">✕</button>
+      </div>
+      <div id="decryptHintBox" class="decrypt-hint-box">
+        <div class="decrypt-hint-label">📡 INTERCEPTED CLUE // HINT</div>
+        <div id="decryptHintText" class="decrypt-hint-text"></div>
       </div>
       <div class="decrypt-controls">
         <input type="password" id="passInput" placeholder="Passphrase..." onkeydown="if(event.key==='Enter') handleDecryptSubmit()">
@@ -1798,8 +1832,81 @@
       }
     }
 
-    function openDecryptBox(type, item) {
-      pendingDecrypt = { type, item };
+    /* Extract optional unencrypted ARG hint header from .vault.txt or .locked.txt */
+    function extractHintAndPayload(bytes) {
+      if (!bytes || bytes.length === 0) {
+        return { hint: '', payloadBytes: bytes };
+      }
+
+      // 1. Binary OOSH1 Envelope: "OOSH\x01" + [uint32 hintLength] + [UTF-8 hint] + [payload]
+      if (
+        bytes.length >= 9 &&
+        bytes[0] === 0x4F &&
+        bytes[1] === 0x4F &&
+        bytes[2] === 0x53 &&
+        bytes[3] === 0x48 &&
+        bytes[4] === 0x01
+      ) {
+        const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+        const hintLen = view.getUint32(5, false);
+        if (9 + hintLen <= bytes.length) {
+          const hint = new TextDecoder().decode(bytes.slice(9, 9 + hintLen)).trim();
+          const payloadBytes = bytes.slice(9 + hintLen);
+          return { hint, payloadBytes };
+        }
+      }
+
+      // 2. Text-based ARG Hint Prefix (for .locked.txt files)
+      // Checks first byte for '=' (61) or 'H'/'h' (72/104) before decoding
+      if (bytes[0] === 0x3D || bytes[0] === 0x48 || bytes[0] === 0x68) {
+        const fullText = new TextDecoder().decode(bytes);
+
+        const multiMatch = fullText.match(/^=== OOS HINT ===\r?\n([\s\S]*?)\r?\n=== END HINT ===\r?\n([\s\S]*)$/);
+        if (multiMatch) {
+          return {
+            hint: multiMatch[1].trim(),
+            payloadBytes: new TextEncoder().encode(multiMatch[2])
+          };
+        }
+
+        const singleMatch = fullText.match(/^HINT:\s*(.+?)\r?\n(?:---\r?\n)?([\s\S]*)$/i);
+        if (singleMatch) {
+          return {
+            hint: singleMatch[1].trim(),
+            payloadBytes: new TextEncoder().encode(singleMatch[2])
+          };
+        }
+      }
+
+      return { hint: '', payloadBytes: bytes };
+    }
+
+    function renderDecryptHint(hintText, isLoading = false) {
+      const hintBox = document.getElementById('decryptHintBox');
+      const hintTextEl = document.getElementById('decryptHintText');
+
+      if (isLoading) {
+        hintBox.style.display = 'block';
+        hintTextEl.classList.add('loading');
+        hintTextEl.textContent = 'Scanning file header for clues...';
+        return;
+      }
+
+      if (hintText) {
+        hintBox.style.display = 'block';
+        hintTextEl.classList.remove('loading');
+        hintTextEl.textContent = hintText;
+      } else {
+        hintBox.style.display = 'none';
+        hintTextEl.classList.remove('loading');
+        hintTextEl.textContent = '';
+      }
+    }
+
+    async function openDecryptBox(type, item) {
+      const requestState = { type, item, payloadBytes: null };
+      pendingDecrypt = requestState;
+
       const label = document.getElementById('decryptPromptLabel');
       const displayName = getCleanName(item);
       label.innerHTML = type === 'vault'
@@ -1808,12 +1915,35 @@
 
       document.getElementById('decryptError').textContent = '';
       document.getElementById('passInput').value = '';
+      renderDecryptHint('', true);
       document.getElementById('decryptBox').style.display = 'block';
       document.getElementById('passInput').focus();
+
+      try {
+        let rawBytes;
+        if (item.virtual && item.rawBytes) {
+          rawBytes = item.rawBytes;
+        } else {
+          const res = await fetch(item.path + '?t=' + Date.now());
+          if (!res.ok) throw new Error('Could not fetch encrypted file');
+          rawBytes = new Uint8Array(await res.arrayBuffer());
+        }
+
+        if (pendingDecrypt !== requestState) return;
+
+        const { hint, payloadBytes } = extractHintAndPayload(rawBytes);
+        requestState.payloadBytes = payloadBytes;
+        renderDecryptHint(hint, false);
+      } catch (_) {
+        if (pendingDecrypt === requestState) {
+          renderDecryptHint('', false);
+        }
+      }
     }
 
     function closeDecryptBox() {
       document.getElementById('decryptBox').style.display = 'none';
+      renderDecryptHint('', false);
       pendingDecrypt = null;
     }
 
@@ -1875,6 +2005,7 @@
 
     async function handleDecryptSubmit() {
       if (!pendingDecrypt) return;
+      const activeRequest = pendingDecrypt;
       const password = document.getElementById('passInput').value;
       const errEl = document.getElementById('decryptError');
       const submitBtn = document.getElementById('decryptSubmitBtn');
@@ -1884,17 +2015,24 @@
       submitBtn.textContent = 'Decrypting...';
 
       try {
-        let bytes;
-        if (pendingDecrypt.item.virtual && pendingDecrypt.item.rawBytes) {
-          bytes = pendingDecrypt.item.rawBytes;
-        } else {
-          const res = await fetch(pendingDecrypt.item.path + '?t=' + Date.now());
-          if (!res.ok) throw new Error('Could not fetch encrypted file');
-          bytes = new Uint8Array(await res.arrayBuffer());
+        let bytes = activeRequest.payloadBytes;
+        if (!bytes) {
+          let rawBytes;
+          if (activeRequest.item.virtual && activeRequest.item.rawBytes) {
+            rawBytes = activeRequest.item.rawBytes;
+          } else {
+            const res = await fetch(activeRequest.item.path + '?t=' + Date.now());
+            if (!res.ok) throw new Error('Could not fetch encrypted file');
+            rawBytes = new Uint8Array(await res.arrayBuffer());
+          }
+          const extracted = extractHintAndPayload(rawBytes);
+          bytes = extracted.payloadBytes;
+          activeRequest.payloadBytes = bytes;
+          renderDecryptHint(extracted.hint, false);
         }
 
-        if (pendingDecrypt.type === 'vault') {
-          const vaultRoot = getVaultVirtualPath(pendingDecrypt.item);
+        if (activeRequest.type === 'vault') {
+          const vaultRoot = getVaultVirtualPath(activeRequest.item);
 
           // Check for OOSV1 binary magic header ("OOSV")
           if (bytes[0] === 0x4F && bytes[1] === 0x4F && bytes[2] === 0x53 && bytes[3] === 0x56) {
@@ -1918,7 +2056,7 @@
               rawBytes: new Uint8Array(plainBuf, dataBaseOffset + meta.offset, meta.size)
             }));
 
-            mountVirtualFiles(vaultRoot, pendingDecrypt.item.modified, records);
+            mountVirtualFiles(vaultRoot, activeRequest.item.modified, records);
           } else {
             // Backward compatibility for legacy hex-encoded JSON vaults
             const hex = new TextDecoder().decode(bytes).replace(/\s+/g, '');
@@ -1934,7 +2072,7 @@
             if (!parsed || !Array.isArray(parsed.files)) {
               throw new Error('Corrupted vault structure');
             }
-            mountVirtualFiles(vaultRoot, pendingDecrypt.item.modified, parsed.files);
+            mountVirtualFiles(vaultRoot, activeRequest.item.modified, parsed.files);
           }
         } else {
           // Single locked link (.locked.txt) — works both at root and nested inside vaults
@@ -1948,7 +2086,7 @@
           const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext);
           const targetUrl = extractTargetUrl(new TextDecoder().decode(decrypted));
 
-          openLinkInViewer(pendingDecrypt.item, targetUrl, true);
+          openLinkInViewer(activeRequest.item, targetUrl, true);
         }
       } catch (e) {
         errEl.textContent = 'Access denied: Invalid passphrase.';

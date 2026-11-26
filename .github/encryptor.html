@@ -166,6 +166,10 @@
       font-size: 12px;
       line-height: 1.45;
     }
+    textarea.hint-textarea {
+      min-height: 68px;
+      border-left: 3px solid #e3b341;
+    }
     .hex-box {
       word-break: break-all;
       min-height: 82px;
@@ -541,6 +545,19 @@
             </div>
           </div>
 
+          <!-- Optional ARG Clue / Hint -->
+          <div class="field">
+            <label>
+              <span>📡 ARG Clue / Passphrase Hint (Optional)</span>
+              <span style="font-size:10px; color:#e3b341;">SHOWN BEFORE UNLOCK</span>
+            </label>
+            <textarea
+              id="vaultHintInput"
+              class="hint-textarea"
+              placeholder="e.g. Listen closely to the timestamp spoken at the end of Audio Log 02. Format: WORD-NUMBER"></textarea>
+            <span class="hint-text">Displayed inside the clearance prompt when someone clicks this folder. Leave blank for no hint.</span>
+          </div>
+
           <div class="field">
             <label>Folder Clearance Passphrase</label>
             <div class="input-row">
@@ -595,6 +612,19 @@
             <span class="hint-text">Tip: Add <code>.video</code> or <code>.audio</code> to the name (e.g. <code>log-01.video</code>) to render it with a Video/Audio icon and media player.</span>
           </div>
 
+          <!-- Optional ARG Clue / Hint -->
+          <div class="field">
+            <label>
+              <span>📡 ARG Clue / Passphrase Hint (Optional)</span>
+              <span style="font-size:10px; color:#e3b341;">SHOWN BEFORE UNLOCK</span>
+            </label>
+            <textarea
+              id="linkHintInput"
+              class="hint-textarea"
+              placeholder="e.g. The name of the sector mentioned in the redacted memo + the year of the blackout."></textarea>
+            <span class="hint-text">Stored as a readable header at the top of the <code>.locked.txt</code> file so you can also edit the clue manually later without re-encrypting.</span>
+          </div>
+
           <div class="field">
             <label>Clearance Passphrase</label>
             <div class="input-row">
@@ -620,7 +650,7 @@
             </div>
           </div>
 
-          <textarea id="hexOutput" class="hex-box" readonly placeholder="Encrypted hex bytes will appear here..."></textarea>
+          <textarea id="hexOutput" class="hex-box" readonly placeholder="Encrypted payload (and optional ARG hint header) will appear here..."></textarea>
           <div id="linkStatus" class="status"></div>
         </div>
       </div>
@@ -1009,6 +1039,19 @@
       );
     }
 
+    function buildBinaryHintHeader(hintText) {
+      const trimmed = (hintText || '').trim();
+      if (!trimmed) return null;
+
+      const hintBytes = new TextEncoder().encode(trimmed);
+      const header = new Uint8Array(9 + hintBytes.length);
+      // Magic "OOSH\x01"
+      header.set([0x4F, 0x4F, 0x53, 0x48, 0x01], 0);
+      new DataView(header.buffer).setUint32(5, hintBytes.length, false);
+      header.set(hintBytes, 9);
+      return header;
+    }
+
     async function encryptVault() {
       const statusEl = document.getElementById('vaultStatus');
       const receiptEl = document.getElementById('vaultReceipt');
@@ -1022,6 +1065,8 @@
       dlBtn.disabled = true;
 
       const password = document.getElementById('vaultPassInput').value;
+      const hintText = document.getElementById('vaultHintInput').value;
+
       if (vaultFiles.length === 0) {
         statusEl.className = 'status err';
         statusEl.textContent = 'Add at least one file or link to the folder first.';
@@ -1092,10 +1137,12 @@
         await nextTick();
 
         const magicHeader = new Uint8Array([0x4F, 0x4F, 0x53, 0x56, 0x01]);
-        encryptedVaultBlob = new Blob(
-          [magicHeader, salt, iv, ciphertext],
-          { type: 'application/octet-stream' }
-        );
+        const hintHeader = buildBinaryHintHeader(hintText);
+        const blobParts = hintHeader
+          ? [hintHeader, magicHeader, salt, iv, ciphertext]
+          : [magicHeader, salt, iv, ciphertext];
+
+        encryptedVaultBlob = new Blob(blobParts, { type: 'application/octet-stream' });
 
         setProgress('vault', 100, 'Vault encrypted and ready to download', 'done');
         dlBtn.disabled = false;
@@ -1104,6 +1151,7 @@
           <strong style="color:#3fb950;">✓ OOSV1 ENCRYPTED CONTAINER READY</strong><br>
           • Packed Entries: ${vaultFiles.length} item(s)<br>
           • Final Archive Size: ${formatSize(encryptedVaultBlob.size)}<br>
+          • ARG Hint Attached: ${hintHeader ? 'Yes (OOSH1 Header)' : 'None'}<br>
           • Format: Raw Binary AES-256-GCM
         `;
         receiptEl.classList.add('visible');
@@ -1137,6 +1185,7 @@
 
       const url = document.getElementById('urlInput').value.trim();
       const password = document.getElementById('passInput').value;
+      const hintText = document.getElementById('linkHintInput').value.trim();
 
       if (!url || !password) {
         statusEl.className = 'status err';
@@ -1166,12 +1215,22 @@
         combined.set(ciphertext, 28);
 
         const hex = Array.from(combined).map(b => b.toString(16).padStart(2, '0')).join('');
-        document.getElementById('hexOutput').value = hex;
+
+        let formattedOutput = hex;
+        if (hintText) {
+          formattedOutput = hintText.includes('\n')
+            ? `=== OOS HINT ===\n${hintText}\n=== END HINT ===\n${hex}`
+            : `HINT: ${hintText}\n---\n${hex}`;
+        }
+
+        document.getElementById('hexOutput').value = formattedOutput;
         document.getElementById('downloadLinkBtn').disabled = false;
 
         setProgress('link', 100, 'Link encrypted', 'done');
         statusEl.className = 'status ok';
-        statusEl.textContent = `Encrypted (${hex.length} hex chars).`;
+        statusEl.textContent = hintText
+          ? `Encrypted (${hex.length} hex chars) with ARG hint attached.`
+          : `Encrypted (${hex.length} hex chars).`;
       } catch (err) {
         setProgress('link', 100, 'Encryption failed', 'error');
         statusEl.className = 'status err';
@@ -1182,11 +1241,11 @@
     }
 
     function downloadLinkFile() {
-      const hex = document.getElementById('hexOutput').value;
-      if (!hex) return;
+      const output = document.getElementById('hexOutput').value;
+      if (!output) return;
       const rawName = document.getElementById('fileNameInput').value.trim() || 'secret-link';
       const cleanBase = rawName.replace(/\.locked\.txt$/i, '').replace(/[^a-zA-Z0-9._-]/g, '_');
-      const blob = new Blob([hex + '\n'], { type: 'text/plain;charset=utf-8' });
+      const blob = new Blob([output + '\n'], { type: 'text/plain;charset=utf-8' });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
       link.download = `${cleanBase}.locked.txt`;
