@@ -514,7 +514,7 @@
         padding-left: 10px;
         padding-right: 10px;
       }
-      .viewer-text {
+      viewer-text {
         padding: 14px 16px;
         font-size: 12.5px;
       }
@@ -595,10 +595,6 @@
   </main>
 
   <script>
-    // Optional: Paste a referrer-restricted Google Drive API key here to stream Drive audio/video
-    // directly into native <video>/<audio> players. Leave empty ('') to use Drive's iframe player.
-    const DRIVE_API_KEY = 'AIzaSyAiV60Gbf52iaUby9poglJ-VMgPAq1X28Q';
-
     let repoEntries = [];
     let currentPath = '';
     let activeFile = null;
@@ -821,7 +817,6 @@
     function cleanupViewerMedia() {
       const viewerBody = document.getElementById('viewerBody');
       viewerBody.querySelectorAll('video, audio').forEach(el => {
-        el.onerror = null;
         el.pause();
         el.removeAttribute('src');
         el.load();
@@ -1084,27 +1079,6 @@
       return iniMatch ? iniMatch[1].trim() : trimmed;
     }
 
-    function extractDriveFileId(rawUrl) {
-      try {
-        const parsed = new URL(rawUrl);
-        const host = parsed.hostname.toLowerCase();
-        if (host === 'drive.google.com') {
-          const fileMatch = parsed.pathname.match(/\/file\/(?:u\/\d+\/)?d\/([a-zA-Z0-9_-]+)/);
-          if (fileMatch) return fileMatch[1];
-          const queryId = parsed.searchParams.get('id');
-          if (queryId && /^\/(?:u\/\d+\/)?(?:open|uc)$/.test(parsed.pathname)) return queryId;
-        }
-        if (host === 'drive.usercontent.google.com') {
-          return parsed.searchParams.get('id');
-        }
-        if (host.endsWith('.googleusercontent.com')) {
-          const gucMatch = parsed.pathname.match(/\/d\/([a-zA-Z0-9_-]+)/);
-          if (gucMatch) return gucMatch[1];
-        }
-      } catch (_) {}
-      return null;
-    }
-
     function toEmbeddableUrl(rawUrl) {
       try {
         const parsed = new URL(rawUrl);
@@ -1217,14 +1191,9 @@
       const isVideo = isVideoLinkFile(item);
       const isAudio = isAudioLinkFile(item);
       const { embedUrl, isDrive } = toEmbeddableUrl(rawUrl);
-      const driveFileId = isDrive ? extractDriveFileId(rawUrl) : null;
-      const directStreamUrl = (DRIVE_API_KEY && driveFileId)
-        ? `https://www.googleapis.com/drive/v3/files/${driveFileId}?alt=media&key=${encodeURIComponent(DRIVE_API_KEY)}`
-        : null;
 
-      const streamMetaLabel = `${fileType}${isDrive ? ' • Drive Stream' : ''} • Modified ${modified}`;
-      const embedMetaLabel = `${fileType}${isDrive ? ' • Drive Embed' : ''} • Modified ${modified}`;
-      document.getElementById('viewerMeta').textContent = directStreamUrl ? streamMetaLabel : embedMetaLabel;
+      const metaLabel = `${fileType}${isDrive ? ' • Drive Embed' : ''} • Modified ${modified}`;
+      document.getElementById('viewerMeta').textContent = metaLabel;
 
       const rawLinkEl = document.getElementById('viewerRawLink');
       rawLinkEl.href = rawUrl;
@@ -1232,78 +1201,46 @@
 
       viewerBody.innerHTML = '';
 
-      const renderDriveIframeFallback = () => {
-        document.getElementById('viewerMeta').textContent = embedMetaLabel;
-        viewerBody.innerHTML = '';
-
-        if (isVideo) {
-          const stage = document.createElement('div');
-          stage.className = 'viewer-media-stage';
-
-          const wrap = document.createElement('div');
-          wrap.className = 'drive-video-wrap';
-
-          const iframe = document.createElement('iframe');
-          iframe.src = embedUrl;
-          iframe.title = cleanName;
-          iframe.setAttribute('allow', 'autoplay; fullscreen; encrypted-media');
-          iframe.setAttribute('allowfullscreen', '');
-
-          wrap.appendChild(iframe);
-          stage.appendChild(wrap);
-          viewerBody.appendChild(stage);
-        } else if (isAudio) {
-          viewerBody.innerHTML = `
-            <div class="viewer-media-stage">
-              <div class="viewer-audio-card">
-                <div class="audio-card-header">
-                  <div class="audio-icon-box">
-                    <svg width="22" height="22" viewBox="0 0 16 16" fill="none" stroke="#58a6ff" stroke-width="1.4">
-                      <path d="M2.5 6.2h2.4l3.1-2.7v9l-3.1-2.7H2.5z"/>
-                      <path d="M10.5 5.5a3.5 3.5 0 0 1 0 5"/>
-                      <path d="M12.3 3.8a6 6 0 0 1 0 8.4"/>
-                    </svg>
-                  </div>
-                  <div class="audio-title-group">
-                    <div class="audio-title">${cleanName}</div>
-                    <div class="audio-sub">${embedMetaLabel}</div>
-                  </div>
-                </div>
-                <iframe
-                  class="drive-audio-embed"
-                  src="${embedUrl}"
-                  title="${cleanName}"
-                  allow="autoplay; encrypted-media"></iframe>
-              </div>
-            </div>`;
-        }
-      };
-
       if (isVideo) {
-        if (directStreamUrl) {
-          const stage = document.createElement('div');
-          stage.className = 'viewer-media-stage';
+        const stage = document.createElement('div');
+        stage.className = 'viewer-media-stage';
 
-          const video = document.createElement('video');
-          video.controls = true;
-          video.playsInline = true;
-          video.preload = 'metadata';
-          video.src = directStreamUrl;
-          video.onerror = renderDriveIframeFallback;
+        const wrap = document.createElement('div');
+        wrap.className = 'drive-video-wrap';
 
-          stage.appendChild(video);
-          viewerBody.appendChild(stage);
-        } else {
-          renderDriveIframeFallback();
-        }
+        const iframe = document.createElement('iframe');
+        iframe.src = embedUrl;
+        iframe.title = cleanName;
+        iframe.setAttribute('allow', 'autoplay; fullscreen; encrypted-media');
+        iframe.setAttribute('allowfullscreen', '');
+
+        wrap.appendChild(iframe);
+        stage.appendChild(wrap);
+        viewerBody.appendChild(stage);
       } else if (isAudio) {
-        if (directStreamUrl) {
-          renderAudioPlayer(viewerBody, directStreamUrl, cleanName, streamMetaLabel);
-          const audioEl = viewerBody.querySelector('audio');
-          if (audioEl) audioEl.onerror = renderDriveIframeFallback;
-        } else {
-          renderDriveIframeFallback();
-        }
+        viewerBody.innerHTML = `
+          <div class="viewer-media-stage">
+            <div class="viewer-audio-card">
+              <div class="audio-card-header">
+                <div class="audio-icon-box">
+                  <svg width="22" height="22" viewBox="0 0 16 16" fill="none" stroke="#58a6ff" stroke-width="1.4">
+                    <path d="M2.5 6.2h2.4l3.1-2.7v9l-3.1-2.7H2.5z"/>
+                    <path d="M10.5 5.5a3.5 3.5 0 0 1 0 5"/>
+                    <path d="M12.3 3.8a6 6 0 0 1 0 8.4"/>
+                  </svg>
+                </div>
+                <div class="audio-title-group">
+                  <div class="audio-title">${cleanName}</div>
+                  <div class="audio-sub">${metaLabel}</div>
+                </div>
+              </div>
+              <iframe
+                class="drive-audio-embed"
+                src="${embedUrl}"
+                title="${cleanName}"
+                allow="autoplay; encrypted-media"></iframe>
+            </div>
+          </div>`;
       } else {
         const iframe = document.createElement('iframe');
         iframe.className = isDrive ? 'viewer-frame drive-frame' : 'viewer-frame';
