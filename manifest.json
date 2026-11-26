@@ -9,7 +9,14 @@
     "name": "Test_Media",
     "path": "Test_Media",
     "type": "dir",
-    "modified": "2026-11-25"
+    "modified": "2026-11-26"
+  },
+  {
+    "name": "bz_logo.png",
+    "path": "bz_logo.png",
+    "type": "file",
+    "locked": false,
+    "modified": "2026-11-26"
   },
   {
     "name": "test.txt",
@@ -24,6 +31,20 @@
     "type": "file",
     "locked": false,
     "modified": "2026-11-25"
+  },
+  {
+    "name": "Till Became Dust_Banda Neira.mp3",
+    "path": "Test_Media/Till Became Dust_Banda Neira.mp3",
+    "type": "file",
+    "locked": false,
+    "modified": "2026-11-26"
+  },
+  {
+    "name": "Till Became Dust_Banda Neira.vtt",
+    "path": "Test_Media/Till Became Dust_Banda Neira.vtt",
+    "type": "file",
+    "locked": false,
+    "modified": "2026-11-26"
   },
   {
     "name": "cindy.png",
