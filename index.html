@@ -361,16 +361,18 @@
       display: block;
       background: #000000;
     }
+
+    /* Audio Log Player & Synced Subtitles */
     .viewer-audio-card {
       width: 100%;
-      max-width: 540px;
+      max-width: 680px;
       background: #181b20;
       border: 1px solid #2d333b;
       border-radius: 6px;
-      padding: 22px 24px;
+      padding: 20px 22px;
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 14px;
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
     }
     .audio-card-header {
@@ -391,6 +393,7 @@
     }
     .audio-title-group {
       min-width: 0;
+      flex: 1;
     }
     .audio-title {
       font-family: "Courier New", Courier, monospace;
@@ -420,6 +423,112 @@
       background: #0d1014;
       display: block;
     }
+
+    /* Subtitle Live Readout + Scrollable Log */
+    .audio-subtitle-section {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      border-top: 1px solid #262c34;
+      padding-top: 14px;
+    }
+    .audio-live-caption {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-left: 3px solid #58a6ff;
+      border-radius: 4px;
+      padding: 12px 14px;
+      font-family: "Courier New", Courier, "Lucida Console", monospace;
+      min-height: 62px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 4px;
+    }
+    .caption-status-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 10.5px;
+      color: #6e7681;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .caption-active-text {
+      font-size: 13.5px;
+      line-height: 1.5;
+      color: #e6edf3;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .caption-active-text.idle {
+      color: #6e7681;
+      font-style: italic;
+    }
+    .audio-log-wrapper {
+      background: #0d1117;
+      border: 1px solid #262c34;
+      border-radius: 4px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .audio-log-header {
+      padding: 6px 12px;
+      background: #14181f;
+      border-bottom: 1px solid #262c34;
+      font-family: "Courier New", Courier, monospace;
+      font-size: 11px;
+      color: #8b949e;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .audio-log-list {
+      max-height: 220px;
+      overflow-y: auto;
+      scroll-behavior: smooth;
+    }
+    .audio-log-line {
+      display: grid;
+      grid-template-columns: 62px minmax(0, 1fr);
+      gap: 10px;
+      padding: 7px 12px;
+      border-bottom: 1px solid #181c23;
+      font-family: "Courier New", Courier, "Lucida Console", monospace;
+      font-size: 12.5px;
+      line-height: 1.45;
+      color: #8b949e;
+      cursor: pointer;
+      transition: background-color 0.12s ease, color 0.12s ease;
+    }
+    .audio-log-line:last-child {
+      border-bottom: none;
+    }
+    .audio-log-line:hover {
+      background: #161b22;
+      color: #c9d1d9;
+    }
+    .audio-log-line.active {
+      background: #13233a;
+      color: #e6edf3;
+      box-shadow: inset 2px 0 0 #58a6ff;
+    }
+    .audio-log-time {
+      color: #58a6ff;
+      font-size: 11.5px;
+      user-select: none;
+      white-space: nowrap;
+    }
+    .audio-log-line.active .audio-log-time {
+      color: #79c0ff;
+      font-weight: 700;
+    }
+    .audio-log-cue-text {
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
     .viewer-text {
       margin: 0;
       width: 100%;
@@ -514,12 +623,13 @@
         padding-left: 10px;
         padding-right: 10px;
       }
-      viewer-text {
+      .viewer-text {
         padding: 14px 16px;
         font-size: 12.5px;
       }
       .viewer-media-stage { padding: 12px; }
-      .viewer-audio-card { padding: 16px; }
+      .viewer-audio-card { padding: 14px; }
+      .audio-log-list { max-height: 180px; }
     }
   </style>
 </head>
@@ -620,6 +730,14 @@
       audio: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#8b949e" stroke-width="1.3"><path d="M2.5 6.2h2.4l3.1-2.7v9l-3.1-2.7H2.5z"/><path d="M10.5 5.5a3.5 3.5 0 0 1 0 5"/><path d="M12.3 3.8a6 6 0 0 1 0 8.4"/></svg>`,
       lock: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#e3b341" stroke-width="1.3"><rect x="3" y="7" width="10" height="7" rx="1"/><path d="M5 7V5a3 3 0 0 1 6 0v2"/></svg>`
     };
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
 
     function isVaultFile(item) {
       return item && item.type === 'file' && item.name.toLowerCase().endsWith('.vault.txt');
@@ -1201,7 +1319,14 @@
 
       viewerBody.innerHTML = '';
 
-      if (isVideo) {
+      if (isVideo && !isDrive) {
+        viewerBody.innerHTML = `
+          <div class="viewer-media-stage">
+            <video controls playsinline preload="metadata" src="${rawUrl}"></video>
+          </div>`;
+      } else if (isAudio && !isDrive) {
+        renderAudioPlayer(viewerBody, rawUrl, cleanName, metaLabel, item);
+      } else if (isVideo) {
         const stage = document.createElement('div');
         stage.className = 'viewer-media-stage';
 
@@ -1230,14 +1355,14 @@
                   </svg>
                 </div>
                 <div class="audio-title-group">
-                  <div class="audio-title">${cleanName}</div>
-                  <div class="audio-sub">${metaLabel}</div>
+                  <div class="audio-title">${escapeHtml(cleanName)}</div>
+                  <div class="audio-sub">${escapeHtml(metaLabel)}</div>
                 </div>
               </div>
               <iframe
                 class="drive-audio-embed"
                 src="${embedUrl}"
-                title="${cleanName}"
+                title="${escapeHtml(cleanName)}"
                 allow="autoplay; encrypted-media"></iframe>
             </div>
           </div>`;
@@ -1264,7 +1389,104 @@
       return URL.createObjectURL(new Blob([bytes], { type: mime }));
     }
 
-    function renderAudioPlayer(viewerBody, src, title, subtitle) {
+    /* WebVTT Pairing & Parser for Audio Log Player */
+    function findMatchingVtt(audioItem) {
+      if (!audioItem) return null;
+      const lastSlash = audioItem.path.lastIndexOf('/');
+      const parentDir = lastSlash === -1 ? '' : audioItem.path.substring(0, lastSlash);
+      const baseLower = getCleanName(audioItem).toLowerCase();
+
+      const siblings = getAllCombinedEntries().filter(entry => {
+        if (entry.type !== 'file') return false;
+        const sSlash = entry.path.lastIndexOf('/');
+        const sParent = sSlash === -1 ? '' : entry.path.substring(0, sSlash);
+        return sParent === parentDir && entry.name.toLowerCase().endsWith('.vtt');
+      });
+
+      return (
+        siblings.find(s => s.name.toLowerCase() === `${baseLower}.vtt`) ||
+        siblings.find(s => s.name.toLowerCase().startsWith(`${baseLower}.`)) ||
+        null
+      );
+    }
+
+    async function loadVttText(vttItem) {
+      if (vttItem.virtual) {
+        if (vttItem.rawBytes) {
+          return new TextDecoder().decode(vttItem.rawBytes);
+        }
+        return vttItem.content || '';
+      }
+      const res = await fetch(vttItem.path + '?t=' + Date.now());
+      if (!res.ok) throw new Error('Could not fetch VTT subtitle file');
+      return res.text();
+    }
+
+    function parseVttTimestamp(rawTs) {
+      const clean = rawTs.trim().replace(',', '.');
+      const parts = clean.split(':');
+      if (parts.length === 3) {
+        return Number(parts[0]) * 3600 + Number(parts[1]) * 60 + parseFloat(parts[2]);
+      }
+      if (parts.length === 2) {
+        return Number(parts[0]) * 60 + parseFloat(parts[1]);
+      }
+      return NaN;
+    }
+
+    function formatLogTimestamp(seconds) {
+      if (!Number.isFinite(seconds) || seconds < 0) return '00:00';
+      const totalSecs = Math.floor(seconds);
+      const hrs = Math.floor(totalSecs / 3600);
+      const mins = Math.floor((totalSecs % 3600) / 60);
+      const secs = totalSecs % 60;
+      if (hrs > 0) {
+        return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+      }
+      return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+
+    function parseVtt(rawText) {
+      const normalized = (rawText || '').replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
+      const blocks = normalized.split(/\n{2,}/);
+      const cues = [];
+
+      for (const block of blocks) {
+        const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
+        if (lines.length === 0) continue;
+
+        const firstUpper = lines[0].toUpperCase();
+        if (firstUpper.startsWith('WEBVTT') || firstUpper.startsWith('NOTE') || firstUpper.startsWith('STYLE') || firstUpper.startsWith('REGION')) {
+          continue;
+        }
+
+        const timeLineIdx = lines.findIndex(l => l.includes('-->'));
+        if (timeLineIdx === -1) continue;
+
+        const timeMatch = lines[timeLineIdx].match(/^([\d:,.]+)\s*-->\s*([\d:,.]+)/);
+        if (!timeMatch) continue;
+
+        const start = parseVttTimestamp(timeMatch[1]);
+        const end = parseVttTimestamp(timeMatch[2]);
+        if (!Number.isFinite(start) || !Number.isFinite(end)) continue;
+
+        const rawPayload = lines.slice(timeLineIdx + 1).join('\n');
+        const cleanedText = rawPayload
+          .replace(/<v\s+([^>]+)>/gi, '[$1] ')
+          .replace(/<\/?[^>]+>/g, '')
+          .trim();
+
+        if (cleanedText) {
+          cues.push({ start, end, text: cleanedText });
+        }
+      }
+
+      return cues;
+    }
+
+    async function renderAudioPlayer(viewerBody, src, title, subtitle, item = null) {
+      const vttItem = findMatchingVtt(item);
+
       viewerBody.innerHTML = `
         <div class="viewer-media-stage">
           <div class="viewer-audio-card">
@@ -1277,13 +1499,109 @@
                 </svg>
               </div>
               <div class="audio-title-group">
-                <div class="audio-title">${title}</div>
-                <div class="audio-sub">${subtitle}</div>
+                <div class="audio-title">${escapeHtml(title)}</div>
+                <div class="audio-sub" id="audioCardSub">${escapeHtml(subtitle)}${vttItem ? ' • Subtitles Linked' : ''}</div>
               </div>
             </div>
-            <audio controls preload="metadata" src="${src}"></audio>
+            <audio id="oosAudioPlayer" controls preload="metadata" src="${src}"></audio>
+            <div id="audioSubtitleMount"></div>
           </div>
         </div>`;
+
+      if (!vttItem) return;
+
+      const audioEl = document.getElementById('oosAudioPlayer');
+      const subMount = document.getElementById('audioSubtitleMount');
+      if (!audioEl || !subMount) return;
+
+      try {
+        const vttText = await loadVttText(vttItem);
+        const cues = parseVtt(vttText);
+        if (cues.length === 0) return;
+
+        subMount.innerHTML = `
+          <div class="audio-subtitle-section">
+            <div class="audio-live-caption">
+              <div class="caption-status-bar">
+                <span>LIVE TRANSCRIPT // ${escapeHtml(vttItem.name)}</span>
+                <span id="liveCueTime">--:--</span>
+              </div>
+              <div class="caption-active-text idle" id="liveCueText">[ Press play to begin synced audio log ]</div>
+            </div>
+            <div class="audio-log-wrapper">
+              <div class="audio-log-header">
+                <span>AUDIO LOG (${cues.length} ENTRIES)</span>
+                <span>CLICK LINE TO SEEK</span>
+              </div>
+              <div class="audio-log-list" id="audioLogList">
+                ${cues.map((cue, idx) => `
+                  <div class="audio-log-line" data-cue-idx="${idx}">
+                    <span class="audio-log-time">[${formatLogTimestamp(cue.start)}]</span>
+                    <span class="audio-log-cue-text">${escapeHtml(cue.text)}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>`;
+
+        const liveTimeEl = document.getElementById('liveCueTime');
+        const liveTextEl = document.getElementById('liveCueText');
+        const logListEl = document.getElementById('audioLogList');
+        const lineEls = Array.from(logListEl.querySelectorAll('.audio-log-line'));
+        let activeIdx = -1;
+
+        lineEls.forEach((lineEl, idx) => {
+          lineEl.onclick = () => {
+            audioEl.currentTime = cues[idx].start + 0.01;
+            if (audioEl.paused) {
+              audioEl.play().catch(() => {});
+            }
+          };
+        });
+
+        const syncSubtitles = () => {
+          const now = audioEl.currentTime;
+          let foundIdx = -1;
+
+          for (let i = 0; i < cues.length; i++) {
+            if (now >= cues[i].start && now <= cues[i].end) {
+              foundIdx = i;
+              break;
+            }
+          }
+
+          if (foundIdx === activeIdx) return;
+
+          if (activeIdx !== -1 && lineEls[activeIdx]) {
+            lineEls[activeIdx].classList.remove('active');
+          }
+
+          activeIdx = foundIdx;
+
+          if (foundIdx !== -1) {
+            const cue = cues[foundIdx];
+            liveTimeEl.textContent = `${formatLogTimestamp(cue.start)} → ${formatLogTimestamp(cue.end)}`;
+            liveTextEl.textContent = cue.text;
+            liveTextEl.classList.remove('idle');
+
+            const targetLine = lineEls[foundIdx];
+            if (targetLine) {
+              targetLine.classList.add('active');
+              const targetTop = targetLine.offsetTop - logListEl.offsetTop - (logListEl.clientHeight / 2) + (targetLine.clientHeight / 2);
+              logListEl.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+            }
+          } else {
+            liveTimeEl.textContent = formatLogTimestamp(now);
+            liveTextEl.textContent = '...';
+            liveTextEl.classList.add('idle');
+          }
+        };
+
+        audioEl.addEventListener('timeupdate', syncSubtitles);
+        audioEl.addEventListener('seeked', syncSubtitles);
+      } catch (err) {
+        console.warn('Subtitle load skipped:', err);
+      }
     }
 
     async function openFileViewer(item, pushHistory = true) {
@@ -1370,7 +1688,7 @@
       if (IMAGE_EXTS.has(ext)) {
         viewerBody.innerHTML = `
           <div class="viewer-media-stage">
-            <img src="${mediaSrc}" alt="${cleanName}">
+            <img src="${mediaSrc}" alt="${escapeHtml(cleanName)}">
           </div>`;
       } else if (VIDEO_EXTS.has(ext)) {
         viewerBody.innerHTML = `
@@ -1378,10 +1696,10 @@
             <video controls playsinline preload="metadata" src="${mediaSrc}"></video>
           </div>`;
       } else if (AUDIO_EXTS.has(ext)) {
-        renderAudioPlayer(viewerBody, mediaSrc, cleanName, metaLabel);
+        renderAudioPlayer(viewerBody, mediaSrc, cleanName, metaLabel, item);
       } else if (FRAME_EXTS.has(ext)) {
         viewerBody.innerHTML = `
-          <iframe class="viewer-frame" src="${mediaSrc}" title="${cleanName}"></iframe>`;
+          <iframe class="viewer-frame" src="${mediaSrc}" title="${escapeHtml(cleanName)}"></iframe>`;
       } else if (item.virtual) {
         const pre = document.createElement('pre');
         pre.className = 'viewer-text';
@@ -1410,8 +1728,8 @@
       const label = document.getElementById('decryptPromptLabel');
       const displayName = getCleanName(item);
       label.innerHTML = type === 'vault'
-        ? `🔒 Enter clearance passphrase to unlock folder <strong>${displayName}</strong>:`
-        : `🔒 Enter clearance passphrase to decrypt <strong>${displayName}</strong>:`;
+        ? `🔒 Enter clearance passphrase to unlock folder <strong>${escapeHtml(displayName)}</strong>:`
+        : `🔒 Enter clearance passphrase to decrypt <strong>${escapeHtml(displayName)}</strong>:`;
 
       document.getElementById('decryptError').textContent = '';
       document.getElementById('passInput').value = '';
