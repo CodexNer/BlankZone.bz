@@ -15,7 +15,7 @@
     "name": "Test_Media",
     "path": "Test_Media",
     "type": "dir",
-    "modified": "2026-11-26"
+    "modified": "2026-11-27"
   },
   {
     "name": "bz_logo.png",
@@ -30,6 +30,13 @@
     "type": "file",
     "locked": false,
     "modified": "2026-11-25"
+  },
+  {
+    "name": "It_s_just_the_way_we_re_wired.video.link.txt",
+    "path": "Test_Media/It_s_just_the_way_we_re_wired.video.link.txt",
+    "type": "file",
+    "locked": false,
+    "modified": "2026-11-27"
   },
   {
     "name": "Larpkai.video.link.txt",
