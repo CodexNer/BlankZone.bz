@@ -1,0 +1,155 @@
+================================================================================
+OUTCASTS ORGANIZATION SOFTWARE (OOS) — BLANKZONE.BZ WEBSITE DESCRIPTION
+================================================================================
+
+Repository URL : https://github.com/CodexNer/BlankZone.bz
+Live Site URL  : https://codexner.github.io/BlankZone.bz/
+Platform Title : Outcasts Organization Software (OOS)
+Developed By   : CodexNer & Athena
+Copyright      : (c) 2026 Outcasts Organization. All rights reserved.
+Note           : Classified vault and locked files are excluded from this document.
+
+--------------------------------------------------------------------------------
+1. OVERVIEW & PURPOSE
+--------------------------------------------------------------------------------
+BlankZone.bz—branded on the web interface as "Outcasts Organization Software"
+(OOS)—is a static, browser-based directory explorer and multimedia archive
+built for browsing "Blank Zone" chronicles, logs, recordings, and entries.
+
+Designed to look and feel like an internal archival terminal, the website
+transforms a standard GitHub Pages repository into an interactive file manager
+and media player. Visitors can browse nested folders, inspect documents and
+artwork, stream audio and video logs with live synchronized transcripts, and
+view embedded external media—all without leaving the single-page interface.
+
+--------------------------------------------------------------------------------
+2. VISUAL DESIGN & BRANDING
+--------------------------------------------------------------------------------
+- Dark Terminal Aesthetic:
+  The interface uses a low-glare dark color scheme (#121417 base background,
+  #181b20 content panels, #21262d toolbars, and #58a6ff interactive links)
+  paired with crisp borders (#2d333b) to evoke an archival software workstation.
+
+- Typography:
+  Combines clean sans-serif UI controls ("Helvetica Neue", Helvetica, Arial)
+  with monospace typography ("Courier New", Courier, "Lucida Console") for
+  brand headers, file metadata, timestamps, logs, and text readers.
+
+- Outcasts Organization Emblem:
+  The top-left navigation bar features a custom vector shield crest:
+  * A dark hexagonal core (#090714) framed by neon magenta (#d91eff) and
+    royal indigo (#4324c9) borders.
+  * Four directional compass markers in gold (#facc15) and crimson (#dc2626).
+  * A central golden four-point star enclosing a split magenta-and-yellow core.
+
+- Header Credits & Live Update Indicator:
+  The top-right section displays developer attribution ("Made and Developed by
+  CodexNer & Athena"), copyright notice, and a live relative timestamp
+  ("Updated X ago") pulled dynamically from the GitHub Commits API.
+
+- Responsive Layout:
+  Adapts smoothly across desktop monitors, tablets, and mobile screens,
+  stacking the header and multi-column media transcript panels vertically on
+  smaller viewports.
+
+--------------------------------------------------------------------------------
+3. DIRECTORY EXPLORER & NAVIGATION SYSTEM
+--------------------------------------------------------------------------------
+- Three-Column File Table:
+  Displays directory contents in an aligned grid with columns for:
+  1. Name (paired with context-aware SVG icons for folders, documents, images,
+     audio files, and video files)
+  2. Type (Folder, TXT, MP3, VTT, PNG, VIDEO, AUDIO, LINK, etc.)
+  3. Date Modified (YYYY-MM-DD derived from Git commit history)
+
+- Smart Sorting & Parent Traversal:
+  Folders are automatically sorted above files, with items ordered
+  alphabetically within each group. Navigating into any subfolder adds a ".."
+  row at the top of the list to step back up one directory level.
+
+- Breadcrumb Trail & Deep-Linking:
+  An interactive breadcrumb bar (Home / Folder / Subfolder / File) tracks the
+  user's current location and updates the browser tab title dynamically. URL
+  hash routing (#Folder/Subfolder/File) integrates with the browser's History
+  API, enabling direct shareable links to specific folders or files as well as
+  native browser Back and Forward navigation.
+
+--------------------------------------------------------------------------------
+4. INLINE MULTI-FORMAT CONTENT VIEWER
+--------------------------------------------------------------------------------
+Clicking any public file opens an inline content viewer inside the main panel,
+complete with a "<- Back" button, file type and modification date metadata, and
+an external "Open Raw" (or "Open on YouTube" / "Open in Drive") link.
+
+Supported public file types include:
+- Plain Text & Logs (.txt, .md, .log, .json):
+  Fetched asynchronously and rendered inside a pre-formatted, word-wrapped
+  monospace reader.
+- Images (.png, .jpg, .jpeg, .gif, .webp, .svg, .bmp, .ico):
+  Displayed centered on a dark media stage with subtle drop-shadow framing.
+- Web Pages & Documents (.html, .htm, .pdf):
+  Rendered directly in-page via a full-height embedded iframe.
+- Direct Audio & Video (.mp3, .wav, .ogg, .m4a, .aac, .flac, .opus, .mp4,
+  .webm, .ogv, .mov, .m4v):
+  Opens in a dedicated full-width media workspace with native HTML5 playback
+  controls.
+
+--------------------------------------------------------------------------------
+5. EXTERNAL MEDIA & CLOUD LINK EMBEDDING
+--------------------------------------------------------------------------------
+To support large video and audio recordings without bloating repository storage,
+OOS supports lightweight pointer files (.video.link.txt, .audio.link.txt,
+.link.txt, .url, and .link) containing a target URL.
+
+When opened, the viewer automatically detects the host and converts standard
+share links into clean, responsive in-page embeds:
+- YouTube Integration:
+  Supports standard watch URLs (youtube.com/watch?v=...), short links
+  (youtu.be/...), Shorts (/shorts/), Live streams (/live/), playlists
+  (/playlist?list=...), and start timestamps (?t= or ?start=).
+- Google Drive & Docs Integration:
+  Converts Google Drive file links (/file/d/.../view), folder links, and
+  Google Docs, Sheets, Slides, and Forms URLs into embedded preview frames.
+
+--------------------------------------------------------------------------------
+6. SYNCHRONIZED WEBVTT (.VTT) LIVE TRANSCRIPT ENGINE
+--------------------------------------------------------------------------------
+When an audio or video file has a matching WebVTT (.vtt) subtitle file in the
+same directory (sharing the same base filename), the media viewer expands into
+a synchronized two-column workspace below the player:
+
+- Left Panel — Live Rolling Transcript (Spotify-Style):
+  * Highlights the currently spoken line in bold white text with a subtle blue
+    glow while dimming previously spoken lines above and upcoming lines below.
+  * Previews lines within a 10-second lookbehind and lookahead window.
+  * Displays pause indicators ("••• +Xs pause •••") during long silent gaps
+    and countdowns before the next spoken line begins.
+  * Clicking any past or upcoming line seeks playback to that exact moment.
+
+- Right Panel — Timestamped Media Log (AUDIO LOG / VIDEO LOG):
+  * Lists every parsed subtitle cue chronologically alongside its [MM:SS]
+    (or [HH:MM:SS]) start timestamp.
+  * Automatically highlights and smoothly scrolls to the active entry as the
+    media plays.
+  * Clicking any entry jumps the media player directly to that timestamp.
+
+--------------------------------------------------------------------------------
+7. AUTOMATED REPOSITORY INDEXING PIPELINE
+--------------------------------------------------------------------------------
+Because GitHub Pages hosts static files without a backend directory listing,
+the repository uses an automated GitHub Actions workflow
+(.github/workflows/update.yml) named "Update Explorer Index":
+
+1. Trigger: Runs automatically on every push to the "main" branch (ignoring
+   changes to manifest.json itself to prevent infinite commit loops).
+2. Scan: A Python script traverses the repository, skipping system folders
+   (.git, .github) and application files (index.html, manifest.json,
+   README.md, encryptor.html).
+3. Timestamp Extraction: Queries Git history (`git log -1 --format=%cs`) for
+   every directory and file to record its exact last-modified date.
+4. Manifest Generation: Writes the structured index to `manifest.json` and
+   commits it back to the repository via `github-actions[bot]`.
+
+================================================================================
+END OF FILE
+================================================================================
