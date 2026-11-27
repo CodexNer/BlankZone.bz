@@ -470,7 +470,7 @@
       display: grid;
       grid-template-columns: minmax(0, 1.38fr) minmax(300px, 1fr);
       gap: 14px;
-      min-height: 310px;
+      min-height: 380px;
     }
 
     /* Left Column: Spotify-Style Rolling Transcript */
@@ -481,7 +481,7 @@
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      min-height: 310px;
+      min-height: 380px;
     }
     .panel-bar-header {
       padding: 9px 14px;
@@ -499,28 +499,32 @@
     }
     .spotify-lyrics-stage {
       flex: 1;
+      width: 100%;
       display: flex;
       flex-direction: column;
+      align-items: center;
       justify-content: center;
-      gap: 10px;
-      padding: 20px 24px;
-      background: radial-gradient(circle at 20% 50%, rgba(88, 166, 255, 0.06), transparent 65%), #0d1117;
+      gap: 8px;
+      padding: 18px 0;
+      text-align: center;
+      background: radial-gradient(circle at 50% 50%, rgba(88, 166, 255, 0.07), transparent 70%), #0d1117;
       font-family: "Courier New", Courier, "Lucida Console", monospace;
       overflow-y: auto;
     }
     .lyric-line {
-      padding: 8px 14px;
-      border-radius: 5px;
+      width: 100%;
+      padding: 8px 0;
+      text-align: center;
       transition: all 0.18s ease;
       cursor: pointer;
       line-height: 1.5;
       word-break: break-word;
-      white-space: pre-wrap;
+      white-space: pre-line;
     }
     .lyric-line.past {
       font-size: 15px;
       color: #6e7681;
-      opacity: 0.82;
+      opacity: 0.85;
     }
     .lyric-line.past:hover {
       color: #adbac7;
@@ -531,9 +535,10 @@
       font-size: 20px;
       font-weight: 700;
       color: #ffffff;
-      background: rgba(88, 166, 255, 0.11);
-      border-left: 4px solid #58a6ff;
-      padding: 13px 16px;
+      background: rgba(88, 166, 255, 0.12);
+      border-top: 1px solid rgba(88, 166, 255, 0.35);
+      border-bottom: 1px solid rgba(88, 166, 255, 0.35);
+      padding: 14px 0;
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
       cursor: default;
     }
@@ -541,7 +546,8 @@
       color: #8b949e;
       font-weight: 400;
       font-size: 16px;
-      border-left-color: #30363d;
+      border-top-color: #262c34;
+      border-bottom-color: #262c34;
       background: rgba(255, 255, 255, 0.02);
     }
     .lyric-line.upcoming {
@@ -564,13 +570,14 @@
       opacity: 1;
     }
     .lyric-gap-badge {
-      align-self: flex-start;
-      margin-left: 14px;
+      align-self: center;
+      margin: 0 auto;
+      text-align: center;
       font-size: 11px;
       color: #e3b341;
       background: rgba(227, 179, 65, 0.08);
       border: 1px dashed rgba(227, 179, 65, 0.35);
-      padding: 2px 9px;
+      padding: 2px 10px;
       border-radius: 999px;
       user-select: none;
     }
@@ -583,8 +590,8 @@
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      min-height: 310px;
-      max-height: 460px;
+      min-height: 380px;
+      max-height: 500px;
     }
     .audio-log-list {
       flex: 1;
@@ -736,14 +743,14 @@
         min-height: 0;
       }
       .transcript-panel {
-        min-height: 230px;
+        min-height: 320px;
       }
       .entries-panel {
-        min-height: 220px;
-        max-height: 280px;
+        min-height: 250px;
+        max-height: 320px;
       }
       .lyric-line.active {
-        font-size: 17.5px;
+        font-size: 18px;
       }
       .lyric-line.past,
       .lyric-line.upcoming {
@@ -790,11 +797,11 @@
         padding: 12px 14px;
       }
       .spotify-lyrics-stage {
-        padding: 14px 12px;
+        padding: 16px 0;
       }
       .lyric-line.active {
-        font-size: 16.5px;
-        padding: 10px 12px;
+        font-size: 17px;
+        padding: 12px 0;
       }
       .viewer-media-stage { padding: 12px; }
     }
@@ -1733,18 +1740,12 @@
           const isImmediatePrev = i === activeIdx - 1;
           const withinWindow = (cues[activeIdx].start - cues[i].end) <= LYRIC_WINDOW_SECONDS;
           if (isImmediatePrev || withinWindow) {
-            rows.push(`
-              <div class="lyric-line past" data-seek-idx="${i}" title="Seek to ${formatLogTimestamp(cues[i].start)}">
-                <span class="lyric-ts-tag">[${formatLogTimestamp(cues[i].start)}]</span>${escapeHtml(cues[i].text)}
-              </div>`);
+            rows.push(`<div class="lyric-line past" data-seek-idx="${i}" title="Seek to ${formatLogTimestamp(cues[i].start)}"><span class="lyric-ts-tag">[${formatLogTimestamp(cues[i].start)}]</span>${escapeHtml(cues[i].text)}</div>`);
           }
         }
 
         // Active line
-        rows.push(`
-          <div class="lyric-line active">
-            ${escapeHtml(cues[activeIdx].text)}
-          </div>`);
+        rows.push(`<div class="lyric-line active">${escapeHtml(cues[activeIdx].text)}</div>`);
 
         // Upcoming lines (up to 3 lines within 10s lookahead, always keeping immediate next line)
         const futureEnd = Math.min(cues.length - 1, activeIdx + 3);
@@ -1756,10 +1757,7 @@
             if (gapFromPrev > LYRIC_WINDOW_SECONDS) {
               rows.push(`<div class="lyric-gap-badge">••• +${Math.round(gapFromPrev)}s pause •••</div>`);
             }
-            rows.push(`
-              <div class="lyric-line upcoming" data-seek-idx="${i}" title="Seek to ${formatLogTimestamp(cues[i].start)}">
-                <span class="lyric-ts-tag">[${formatLogTimestamp(cues[i].start)}]</span>${escapeHtml(cues[i].text)}
-              </div>`);
+            rows.push(`<div class="lyric-line upcoming" data-seek-idx="${i}" title="Seek to ${formatLogTimestamp(cues[i].start)}"><span class="lyric-ts-tag">[${formatLogTimestamp(cues[i].start)}]</span>${escapeHtml(cues[i].text)}</div>`);
           }
         }
 
@@ -1780,22 +1778,13 @@
 
       if (prevIdx !== -1) {
         if (prevIdx - 1 >= 0 && (cues[prevIdx].start - cues[prevIdx - 1].end) <= LYRIC_WINDOW_SECONDS) {
-          rows.push(`
-            <div class="lyric-line past" data-seek-idx="${prevIdx - 1}" title="Seek to ${formatLogTimestamp(cues[prevIdx - 1].start)}">
-              <span class="lyric-ts-tag">[${formatLogTimestamp(cues[prevIdx - 1].start)}]</span>${escapeHtml(cues[prevIdx - 1].text)}
-            </div>`);
+          rows.push(`<div class="lyric-line past" data-seek-idx="${prevIdx - 1}" title="Seek to ${formatLogTimestamp(cues[prevIdx - 1].start)}"><span class="lyric-ts-tag">[${formatLogTimestamp(cues[prevIdx - 1].start)}]</span>${escapeHtml(cues[prevIdx - 1].text)}</div>`);
         }
-        rows.push(`
-          <div class="lyric-line past" data-seek-idx="${prevIdx}" title="Seek to ${formatLogTimestamp(cues[prevIdx].start)}">
-            <span class="lyric-ts-tag">[${formatLogTimestamp(cues[prevIdx].start)}]</span>${escapeHtml(cues[prevIdx].text)}
-          </div>`);
+        rows.push(`<div class="lyric-line past" data-seek-idx="${prevIdx}" title="Seek to ${formatLogTimestamp(cues[prevIdx].start)}"><span class="lyric-ts-tag">[${formatLogTimestamp(cues[prevIdx].start)}]</span>${escapeHtml(cues[prevIdx].text)}</div>`);
       }
 
       if (!isStarted && now === 0) {
-        rows.push(`
-          <div class="lyric-line active gap-state">
-            [ Press play to begin synced transcript ]
-          </div>`);
+        rows.push(`<div class="lyric-line active gap-state">[ Press play to begin synced transcript ]</div>`);
       } else if (nextIdx !== -1) {
         const secsLeft = Math.max(1, Math.ceil(cues[nextIdx].start - now));
         const totalGap = prevIdx !== -1
@@ -1804,25 +1793,16 @@
         const gapNote = totalGap > LYRIC_WINDOW_SECONDS
           ? `• • •  (Next line in ${secsLeft}s)`
           : `• • •`;
-        rows.push(`
-          <div class="lyric-line active gap-state">
-            ${gapNote}
-          </div>`);
+        rows.push(`<div class="lyric-line active gap-state">${gapNote}</div>`);
       } else {
-        rows.push(`
-          <div class="lyric-line active gap-state">
-            [ End of transcript ]
-          </div>`);
+        rows.push(`<div class="lyric-line active gap-state">[ End of transcript ]</div>`);
       }
 
       if (nextIdx !== -1) {
         const previewEnd = Math.min(cues.length - 1, nextIdx + 1);
         for (let i = nextIdx; i <= previewEnd; i++) {
           if (i === nextIdx || (cues[i].start - cues[nextIdx].end) <= LYRIC_WINDOW_SECONDS) {
-            rows.push(`
-              <div class="lyric-line upcoming" data-seek-idx="${i}" title="Seek to ${formatLogTimestamp(cues[i].start)}">
-                <span class="lyric-ts-tag">[${formatLogTimestamp(cues[i].start)}]</span>${escapeHtml(cues[i].text)}
-              </div>`);
+            rows.push(`<div class="lyric-line upcoming" data-seek-idx="${i}" title="Seek to ${formatLogTimestamp(cues[i].start)}"><span class="lyric-ts-tag">[${formatLogTimestamp(cues[i].start)}]</span>${escapeHtml(cues[i].text)}</div>`);
           }
         }
       }
