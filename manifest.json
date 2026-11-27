@@ -1,5 +1,11 @@
 [
   {
+    "name": "Test-Entries",
+    "path": "Test-Entries",
+    "type": "dir",
+    "modified": "2026-11-27"
+  },
+  {
     "name": "Test_Files",
     "path": "Test_Files",
     "type": "dir",
@@ -21,6 +27,41 @@
   {
     "name": "test.txt",
     "path": "test.txt",
+    "type": "file",
+    "locked": false,
+    "modified": "2026-11-25"
+  },
+  {
+    "name": "Entry_Rant_01.mp3",
+    "path": "Test-Entries/Entry_Rant_01.mp3",
+    "type": "file",
+    "locked": false,
+    "modified": "2026-11-27"
+  },
+  {
+    "name": "Entry_Rant_01.vtt",
+    "path": "Test-Entries/Entry_Rant_01.vtt",
+    "type": "file",
+    "locked": false,
+    "modified": "2026-11-27"
+  },
+  {
+    "name": "Characters_Data__Testing_Purpose_.locked.txt",
+    "path": "Test_Files/Characters_Data__Testing_Purpose_.locked.txt",
+    "type": "file",
+    "locked": true,
+    "modified": "2026-11-25"
+  },
+  {
+    "name": "NullClassified.vault.txt",
+    "path": "Test_Files/NullClassified.vault.txt",
+    "type": "file",
+    "locked": false,
+    "modified": "2026-11-25"
+  },
+  {
+    "name": "end is never the end.txt",
+    "path": "Test_Files/end is never the end.txt",
     "type": "file",
     "locked": false,
     "modified": "2026-11-25"
@@ -56,27 +97,6 @@
   {
     "name": "old_athena.png",
     "path": "Test_Media/old_athena.png",
-    "type": "file",
-    "locked": false,
-    "modified": "2026-11-25"
-  },
-  {
-    "name": "Characters_Data__Testing_Purpose_.locked.txt",
-    "path": "Test_Files/Characters_Data__Testing_Purpose_.locked.txt",
-    "type": "file",
-    "locked": true,
-    "modified": "2026-11-25"
-  },
-  {
-    "name": "NullClassified.vault.txt",
-    "path": "Test_Files/NullClassified.vault.txt",
-    "type": "file",
-    "locked": false,
-    "modified": "2026-11-25"
-  },
-  {
-    "name": "end is never the end.txt",
-    "path": "Test_Files/end is never the end.txt",
     "type": "file",
     "locked": false,
     "modified": "2026-11-25"
