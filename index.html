@@ -1464,6 +1464,56 @@
       return iniMatch ? iniMatch[1].trim() : trimmed;
     }
 
+    function parseYouTubeStartSeconds(tParam) {
+      if (!tParam) return null;
+      if (/^\d+$/.test(tParam)) return parseInt(tParam, 10);
+      let total = 0;
+      const h = tParam.match(/(\d+)h/i);
+      const m = tParam.match(/(\d+)m/i);
+      const s = tParam.match(/(\d+)s/i);
+      if (h) total += parseInt(h[1], 10) * 3600;
+      if (m) total += parseInt(m[1], 10) * 60;
+      if (s) total += parseInt(s[1], 10);
+      return total > 0 ? total : null;
+    }
+
+    function extractYouTubeEmbed(parsed) {
+      const host = parsed.hostname.toLowerCase().replace(/^www\./, '');
+      let videoId = null;
+      const playlistId = parsed.searchParams.get('list');
+
+      if (host === 'youtu.be') {
+        const seg = parsed.pathname.split('/').filter(Boolean)[0];
+        if (seg) videoId = seg;
+      } else if (
+        host === 'youtube.com' ||
+        host === 'm.youtube.com' ||
+        host === 'music.youtube.com' ||
+        host === 'youtube-nocookie.com'
+      ) {
+        if (parsed.pathname === '/watch') {
+          videoId = parsed.searchParams.get('v');
+        } else if (parsed.pathname === '/playlist' && playlistId) {
+          return `https://www.youtube.com/embed/videoseries?list=${encodeURIComponent(playlistId)}`;
+        } else {
+          const pathMatch = parsed.pathname.match(/^\/(?:embed|shorts|live|v|e)\/([a-zA-Z0-9_-]{6,})/);
+          if (pathMatch) {
+            videoId = pathMatch[1];
+          }
+        }
+      }
+
+      if (!videoId) return null;
+
+      const params = new URLSearchParams();
+      params.set('rel', '0');
+      const startSec = parseYouTubeStartSeconds(parsed.searchParams.get('start') || parsed.searchParams.get('t'));
+      if (startSec) params.set('start', String(startSec));
+      if (playlistId) params.set('list', playlistId);
+
+      return `https://www.youtube.com/embed/${encodeURIComponent(videoId)}?${params.toString()}`;
+    }
+
     function toEmbeddableUrl(rawUrl) {
       try {
         const parsed = new URL(rawUrl);
@@ -1475,7 +1525,8 @@
           if (fileMatch) {
             return {
               embedUrl: `https://drive.google.com/file/d/${fileMatch[1]}/preview`,
-              isDrive: true
+              isEmbed: true,
+              provider: 'drive'
             };
           }
 
@@ -1483,7 +1534,8 @@
           if (folderMatch) {
             return {
               embedUrl: `https://drive.google.com/embeddedfolderview?id=${folderMatch[1]}#list`,
-              isDrive: true
+              isEmbed: true,
+              provider: 'drive'
             };
           }
 
@@ -1491,7 +1543,8 @@
           if (queryId && /^\/(?:u\/\d+\/)?(?:open|uc)$/.test(parsed.pathname)) {
             return {
               embedUrl: `https://drive.google.com/file/d/${queryId}/preview`,
-              isDrive: true
+              isEmbed: true,
+              provider: 'drive'
             };
           }
         }
@@ -1502,7 +1555,8 @@
           if (queryId) {
             return {
               embedUrl: `https://drive.google.com/file/d/${queryId}/preview`,
-              isDrive: true
+              isEmbed: true,
+              provider: 'drive'
             };
           }
         }
@@ -1513,7 +1567,8 @@
           if (gucMatch) {
             return {
               embedUrl: `https://drive.google.com/file/d/${gucMatch[1]}/preview`,
-              isDrive: true
+              isEmbed: true,
+              provider: 'drive'
             };
           }
         }
@@ -1524,7 +1579,8 @@
           if (docsMatch) {
             return {
               embedUrl: `https://docs.google.com/${docsMatch[1]}/d/${docsMatch[2]}/preview`,
-              isDrive: true
+              isEmbed: true,
+              provider: 'drive'
             };
           }
 
@@ -1532,7 +1588,8 @@
           if (formPublicMatch) {
             return {
               embedUrl: `https://docs.google.com/forms/d/e/${formPublicMatch[1]}/viewform?embedded=true`,
-              isDrive: true
+              isEmbed: true,
+              provider: 'drive'
             };
           }
 
@@ -1540,15 +1597,26 @@
           if (formMatch) {
             return {
               embedUrl: `https://docs.google.com/forms/d/${formMatch[1]}/viewform?embedded=true`,
-              isDrive: true
+              isEmbed: true,
+              provider: 'drive'
             };
           }
+        }
+
+        // YouTube Videos, Shorts, Live & Playlists
+        const ytEmbed = extractYouTubeEmbed(parsed);
+        if (ytEmbed) {
+          return {
+            embedUrl: ytEmbed,
+            isEmbed: true,
+            provider: 'youtube'
+          };
         }
       } catch (_) {
         // Non-standard URL; fall through as-is
       }
 
-      return { embedUrl: rawUrl, isDrive: false };
+      return { embedUrl: rawUrl, isEmbed: false, provider: null };
     }
 
     function openLinkInViewer(item, rawUrl, pushHistory = true) {
@@ -1575,22 +1643,32 @@
       const modified = getModifiedDate(item);
       const isVideo = isVideoLinkFile(item);
       const isAudio = isAudioLinkFile(item);
-      const { embedUrl, isDrive } = toEmbeddableUrl(rawUrl);
+      const { embedUrl, isEmbed, provider } = toEmbeddableUrl(rawUrl);
 
-      const metaLabel = `${fileType}${isDrive ? ' • Drive Embed' : ''} • Modified ${modified}`;
+      const providerBadge = provider === 'youtube'
+        ? ' • YouTube Embed'
+        : provider === 'drive'
+          ? ' • Drive Embed'
+          : '';
+      const metaLabel = `${fileType}${providerBadge} • Modified ${modified}`;
       document.getElementById('viewerMeta').textContent = metaLabel;
 
       const rawLinkEl = document.getElementById('viewerRawLink');
       rawLinkEl.href = rawUrl;
-      rawLinkEl.textContent = isDrive ? 'Open in Drive ↗' : 'Open Raw ↗';
+      rawLinkEl.textContent = provider === 'youtube'
+        ? 'Open on YouTube ↗'
+        : provider === 'drive'
+          ? 'Open in Drive ↗'
+          : 'Open Raw ↗';
 
       viewerBody.innerHTML = '';
 
       if (isVideo) {
         renderMediaWorkspace(viewerBody, {
           mediaType: 'video',
-          src: isDrive ? embedUrl : rawUrl,
-          isDrive,
+          src: isEmbed ? embedUrl : rawUrl,
+          isEmbed,
+          provider,
           title: cleanName,
           subtitle: metaLabel,
           item
@@ -1598,18 +1676,20 @@
       } else if (isAudio) {
         renderMediaWorkspace(viewerBody, {
           mediaType: 'audio',
-          src: isDrive ? embedUrl : rawUrl,
-          isDrive,
+          src: isEmbed ? embedUrl : rawUrl,
+          isEmbed,
+          provider,
           title: cleanName,
           subtitle: metaLabel,
           item
         });
       } else {
         const iframe = document.createElement('iframe');
-        iframe.className = isDrive ? 'viewer-frame drive-frame' : 'viewer-frame';
+        iframe.className = isEmbed ? 'viewer-frame drive-frame' : 'viewer-frame';
         iframe.src = embedUrl;
         iframe.title = cleanName;
-        iframe.setAttribute('allow', 'autoplay; fullscreen; encrypted-media');
+        iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+        iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen');
         iframe.setAttribute('allowfullscreen', '');
         viewerBody.appendChild(iframe);
       }
@@ -1814,9 +1894,10 @@
       };
     }
 
-    async function renderMediaWorkspace(viewerBody, { mediaType, src, isDrive = false, title, subtitle, item = null }) {
+    async function renderMediaWorkspace(viewerBody, { mediaType, src, isDrive = false, isEmbed = false, provider = null, title, subtitle, item = null }) {
       const vttItem = findMatchingVtt(item);
       const isVideo = mediaType === 'video';
+      const isEmbeddedFrame = isEmbed || isDrive;
       const logLabel = isVideo ? 'VIDEO LOG' : 'AUDIO LOG';
       const fullSub = `${subtitle}${vttItem ? ' • Subtitles Linked' : ''}`;
 
@@ -1824,8 +1905,8 @@
         ? `
           <div class="media-player-banner video-banner">
             <div class="video-theater-stage">
-              ${isDrive
-                ? `<iframe class="drive-video-full" src="${src}" title="${escapeHtml(title)}" allow="autoplay; fullscreen; encrypted-media" allowfullscreen></iframe>`
+              ${isEmbeddedFrame
+                ? `<iframe class="drive-video-full" src="${src}" title="${escapeHtml(title)}" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen" allowfullscreen></iframe>`
                 : `<video id="oosMediaPlayer" controls playsinline preload="metadata" src="${src}"></video>`}
             </div>
             <div class="video-banner-footer">
@@ -1856,8 +1937,8 @@
                 <div class="audio-sub">${escapeHtml(fullSub)}</div>
               </div>
             </div>
-            ${isDrive
-              ? `<iframe class="drive-audio-embed" src="${src}" title="${escapeHtml(title)}" allow="autoplay; encrypted-media"></iframe>`
+            ${isEmbeddedFrame
+              ? `<iframe class="drive-audio-embed" src="${src}" title="${escapeHtml(title)}" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"></iframe>`
               : `<audio id="oosMediaPlayer" controls preload="metadata" src="${src}"></audio>`}
           </div>`;
 
@@ -1895,7 +1976,7 @@
             <div class="entries-panel">
               <div class="panel-bar-header">
                 <span>${logLabel} (${cues.length} ENTRIES)</span>
-                <span>${mediaEl ? 'CLICK LINE TO SEEK' : 'DRIVE PREVIEW'}</span>
+                <span>${mediaEl ? 'CLICK LINE TO SEEK' : (provider === 'youtube' ? 'YOUTUBE PREVIEW' : 'DRIVE PREVIEW')}</span>
               </div>
               <div class="audio-log-list" id="audioLogList">
                 ${cues.map((cue, idx) => `
@@ -2064,7 +2145,7 @@
         renderMediaWorkspace(viewerBody, {
           mediaType: 'video',
           src: mediaSrc,
-          isDrive: false,
+          isEmbed: false,
           title: cleanName,
           subtitle: metaLabel,
           item
@@ -2073,7 +2154,7 @@
         renderMediaWorkspace(viewerBody, {
           mediaType: 'audio',
           src: mediaSrc,
-          isDrive: false,
+          isEmbed: false,
           title: cleanName,
           subtitle: metaLabel,
           item

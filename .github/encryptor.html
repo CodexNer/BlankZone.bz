@@ -410,7 +410,7 @@
 
   <header class="navbar">
     <div class="brand">
-      <svg class="brand-logo" width="32" height="32" viewBox="0 0 120 132" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <svg class="brand-logo" width="32" height="32" viewBox="0 0 120 132" fill="none" xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)">
         <polygon points="60,6 95,24 95,88 60,126 25,88 25,24" fill="#090714"/>
         <polygon points="60,6 18,24 18,88 60,126 60,113 23,83 23,30 60,17" fill="#d91eff"/>
         <polygon points="60,6 100,24 100,88 60,126 60,113 90,83 90,30 60,17" fill="#4324c9"/>
@@ -432,7 +432,7 @@
     <div class="mode-tabs">
       <button class="mode-tab active" onclick="switchMode('vault', this)">📁 Locked Folder (.vault.txt)</button>
       <button class="mode-tab" onclick="switchMode('link', this)">🔗 Single Locked Link (.locked.txt)</button>
-      <button class="mode-tab" onclick="switchMode('public', this)">🌐 Public Drive Media (.link.txt)</button>
+      <button class="mode-tab" onclick="switchMode('public', this)">🌐 Public Media Link (.link.txt)</button>
     </div>
 
     <!-- MODE 1: LOCKED FOLDER BUILDER -->
@@ -451,10 +451,10 @@
             </div>
           </div>
 
-          <!-- Google Drive Video / Audio Link Uploader -->
+          <!-- Google Drive / YouTube Video & Audio Link Uploader -->
           <div class="vault-subbox">
             <div class="subbox-title">
-              <span>🎬 Add Google Drive Video / Audio Link</span>
+              <span>🎬 Add Google Drive / YouTube Media Link</span>
               <span style="font-size:11px; color:#8b949e; font-weight:400;">EMBEDS IN-PAGE • ZERO REPO BLOAT</span>
             </div>
             <div class="field">
@@ -469,17 +469,17 @@
               </div>
             </div>
             <div class="field">
-              <label>Google Drive Share URL</label>
-              <input type="url" id="vMediaUrl" placeholder="https://drive.google.com/file/d/1AbCdEf.../view?usp=sharing">
-              <span class="hint-text">Set file sharing on Google Drive to <strong>"Anyone with the link"</strong> so it plays inside the web viewer like a normal file.</span>
+              <label>Google Drive Share URL or YouTube URL</label>
+              <input type="url" id="vMediaUrl" placeholder="[https://drive.google.com/file/d/](https://drive.google.com/file/d/)... or [https://www.youtube.com/watch?v=](https://www.youtube.com/watch?v=)...">
+              <span class="hint-text">For Google Drive, set file sharing to <strong>"Anyone with the link"</strong>. YouTube links (watch, youtu.be, shorts, live, playlists) embed automatically.</span>
             </div>
             <div class="btn-row">
-              <button class="btn" type="button" onclick="addDriveMediaFile()">+ Add Drive Media to Folder</button>
+              <button class="btn" type="button" onclick="addDriveMediaFile()">+ Add Media Link to Folder</button>
             </div>
 
-            <!-- Bulk Paste / Upload Drive Links -->
+            <!-- Bulk Paste / Upload Drive & YouTube Links -->
             <details class="bulk-drawer">
-              <summary>+ Bulk Paste or Upload Multiple Drive Links (.txt / .csv)</summary>
+              <summary>+ Bulk Paste or Upload Multiple Drive / YouTube Links (.txt / .csv)</summary>
               <div class="bulk-content">
                 <div class="field">
                   <label>Media Type for Batch</label>
@@ -492,8 +492,8 @@
                   </div>
                 </div>
                 <div class="field">
-                  <label>Paste Lines (Format: Name | Google Drive URL)</label>
-                  <textarea id="vBulkMediaLines" placeholder="episode-01 | https://drive.google.com/file/d/1AbCdEf.../view?usp=sharing&#10;logs/recording-02 | https://drive.google.com/file/d/1XyZ987.../view?usp=sharing"></textarea>
+                  <label>Paste Lines (Format: Name | Drive or YouTube URL)</label>
+                  <textarea id="vBulkMediaLines" placeholder="episode-01 | [https://drive.google.com/file/d/1AbCdEf.../view?usp=sharing&#10;logs/recording-02](https://drive.google.com/file/d/1AbCdEf.../view?usp=sharing&#10;logs/recording-02) | [https://www.youtube.com/watch?v=dQw4w9WgXcQ](https://www.youtube.com/watch?v=dQw4w9WgXcQ)"></textarea>
                 </div>
                 <div class="btn-row">
                   <button class="btn" type="button" onclick="addBulkDriveMedia()">+ Add All Lines to Folder</button>
@@ -527,8 +527,8 @@
               <input type="text" id="vFilePath" placeholder="e.g. scp-096.html or docs/drive-folder.link.txt">
             </div>
             <div class="field">
-              <label>Content (HTML, plain text, or Google Drive folder/doc URL)</label>
-              <textarea id="vFileContent" placeholder="Paste HTML/text content, or a Google Drive URL..."></textarea>
+              <label>Content (HTML, plain text, or Google Drive / YouTube URL)</label>
+              <textarea id="vFileContent" placeholder="Paste HTML/text content, or a Google Drive / YouTube URL..."></textarea>
             </div>
             <div class="btn-row">
               <button class="btn" type="button" onclick="addManualVaultFile()">+ Add Entry to Folder</button>
@@ -607,8 +607,8 @@
           </div>
 
           <div class="field">
-            <label>Target Google Drive or External URL</label>
-            <input type="url" id="urlInput" placeholder="https://drive.google.com/file/d/...">
+            <label>Target Google Drive, YouTube, or External URL</label>
+            <input type="url" id="urlInput" placeholder="[https://drive.google.com/file/d/](https://drive.google.com/file/d/)... or [https://www.youtube.com/watch?v=](https://www.youtube.com/watch?v=)...">
             <span class="hint-text">Tip: Add <code>.video</code> or <code>.audio</code> to the name (e.g. <code>log-01.video</code>) to render it with a Video/Audio icon and media player.</span>
           </div>
 
@@ -656,11 +656,11 @@
       </div>
     </section>
 
-    <!-- MODE 3: PUBLIC DRIVE MEDIA FILE (.video.link.txt / .audio.link.txt) -->
+    <!-- MODE 3: PUBLIC DRIVE / YOUTUBE MEDIA FILE (.video.link.txt / .audio.link.txt) -->
     <section id="mode-public" class="mode-section">
       <div class="panel">
         <div class="panel-header">
-          <span>CREATE UNLOCKED DRIVE VIDEO / AUDIO FILE</span>
+          <span>CREATE UNLOCKED DRIVE / YOUTUBE MEDIA FILE</span>
           <span style="font-size:11px; color:#8b949e;">SAFE .TXT EXTENSION • EMBEDS IN-PAGE</span>
         </div>
         <div class="panel-body">
@@ -677,9 +677,9 @@
           </div>
 
           <div class="field">
-            <label>Google Drive Share URL</label>
-            <input type="url" id="pubMediaUrl" placeholder="https://drive.google.com/file/d/1AbCdEf.../view?usp=sharing">
-            <span class="hint-text">Downloads as a clean <code>.link.txt</code> file (never blocked or renamed to <code>.download</code> by Chrome/Windows). Push it to any folder in your repo and it embeds in-page.</span>
+            <label>Google Drive Share URL or YouTube URL</label>
+            <input type="url" id="pubMediaUrl" placeholder="[https://drive.google.com/file/d/](https://drive.google.com/file/d/)... or [https://www.youtube.com/watch?v=](https://www.youtube.com/watch?v=)...">
+            <span class="hint-text">Downloads as a clean <code>.link.txt</code> file (never blocked or renamed to <code>.download</code> by Chrome/Windows). Push it to any folder in your repo and it embeds in-page automatically.</span>
           </div>
 
           <div class="btn-row">
@@ -747,6 +747,28 @@
         if (fileMatch) return fileMatch[1];
         const queryId = parsed.searchParams.get('id');
         if (queryId && /^\/(?:u\/\d+\/)?(?:open|uc)$/.test(parsed.pathname)) return queryId;
+      } catch (_) {}
+      return null;
+    }
+
+    function extractYouTubeId(rawUrl) {
+      try {
+        const parsed = new URL(rawUrl);
+        const host = parsed.hostname.toLowerCase().replace(/^www\./, '');
+        if (host === 'youtu.be') {
+          return parsed.pathname.split('/').filter(Boolean)[0] || null;
+        }
+        if (
+          host === 'youtube.com' ||
+          host === 'm.youtube.com' ||
+          host === 'music.youtube.com' ||
+          host === 'youtube-nocookie.com'
+        ) {
+          if (parsed.pathname === '/watch') return parsed.searchParams.get('v');
+          if (parsed.pathname === '/playlist') return parsed.searchParams.get('list');
+          const m = parsed.pathname.match(/^\/(?:embed|shorts|live|v|e)\/([a-zA-Z0-9_-]{6,})/);
+          if (m) return m[1];
+        }
       } catch (_) {}
       return null;
     }
@@ -900,7 +922,7 @@
 
       if (!rawPath || !rawUrl) {
         statusEl.className = 'status err';
-        statusEl.textContent = 'Enter both an entry name/path and a Google Drive share URL.';
+        statusEl.textContent = 'Enter both an entry name/path and a Google Drive or YouTube URL.';
         return;
       }
 
@@ -911,7 +933,7 @@
         }
       } catch (_) {
         statusEl.className = 'status err';
-        statusEl.textContent = 'Enter a valid https:// Google Drive share URL.';
+        statusEl.textContent = 'Enter a valid https:// Google Drive or YouTube URL.';
         return;
       }
 
@@ -922,10 +944,13 @@
       document.getElementById('vMediaUrl').value = '';
 
       const driveId = extractDriveId(rawUrl);
+      const ytId = extractYouTubeId(rawUrl);
       statusEl.className = 'status ok';
-      statusEl.textContent = driveId
-        ? `Added ${entry.path} (Google Drive ID: ${driveId})`
-        : `Added ${entry.path}`;
+      statusEl.textContent = ytId
+        ? `Added ${entry.path} (YouTube ID: ${ytId})`
+        : driveId
+          ? `Added ${entry.path} (Google Drive ID: ${driveId})`
+          : `Added ${entry.path}`;
     }
 
     function parseAndAddBulkLines(rawText, mediaType) {
@@ -954,13 +979,13 @@
 
       if (added === 0) {
         statusEl.className = 'status err';
-        statusEl.textContent = 'No valid lines found. Use format: File Name | https://drive.google.com/...';
+        statusEl.textContent = 'No valid lines found. Use format: File Name | [https://drive.google.com/](https://drive.google.com/)... or [https://youtube.com/](https://youtube.com/)...';
         return;
       }
 
       box.value = '';
       statusEl.className = 'status ok';
-      statusEl.textContent = `Added ${added} Google Drive ${mediaType} link(s) to folder.`;
+      statusEl.textContent = `Added ${added} media link(s) to folder.`;
     }
 
     async function importDriveLinksFile(input) {
@@ -1019,7 +1044,7 @@
 
       if (skippedAv.length > 0) {
         statusEl.className = 'status err';
-        statusEl.textContent = `Skipped audio/video file(s) (${skippedAv.join(', ')}) — paste their Google Drive links in the section above instead.`;
+        statusEl.textContent = `Skipped audio/video file(s) (${skippedAv.join(', ')}) — paste their Google Drive or YouTube links in the section above instead.`;
       }
 
       input.value = '';
@@ -1264,7 +1289,7 @@
 
       if (!rawName || !rawUrl) {
         statusEl.className = 'status err';
-        statusEl.textContent = 'Enter both a display name and a Google Drive share URL.';
+        statusEl.textContent = 'Enter both a display name and a Google Drive or YouTube URL.';
         return;
       }
 
@@ -1273,7 +1298,7 @@
         if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error();
       } catch (_) {
         statusEl.className = 'status err';
-        statusEl.textContent = 'Enter a valid https:// Google Drive share URL.';
+        statusEl.textContent = 'Enter a valid https:// Google Drive or YouTube URL.';
         return;
       }
 
@@ -1290,8 +1315,14 @@
       link.click();
       setTimeout(() => URL.revokeObjectURL(link.href), 5000);
 
+      const driveId = extractDriveId(rawUrl);
+      const ytId = extractYouTubeId(rawUrl);
       statusEl.className = 'status ok';
-      statusEl.textContent = `Downloaded ${fileName}.`;
+      statusEl.textContent = ytId
+        ? `Downloaded ${fileName} (YouTube ID: ${ytId}).`
+        : driveId
+          ? `Downloaded ${fileName} (Google Drive ID: ${driveId}).`
+          : `Downloaded ${fileName}.`;
     }
   </script>
 </body>
